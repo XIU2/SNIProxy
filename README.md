@@ -207,24 +207,24 @@ listen_addr: :443
 # 可选：启用 Socks5 前置代理
 # （启用前：访客 <=> SNIProxy <=> 目标网站
 # （启用后：访客 <=> SNIProxy <=> Socks5 <=> 目标网站
+# （比如可以套 WARP+，那样就变成：访客 <=> SNIProxy <=> WARP+ <=> 目标网站
 enable_socks5: true
 # 可选：配置 Socks5 代理地址
 socks_addr: 127.0.0.1:40000
-# （比如可以套 WARP+，那样就变成：访客 <=> SNIProxy <=> WARP+ <=> 目标网站
 
-# 可选：允许所有域名（会忽略下面的 rules 列表）
+# 可选：允许所有域名（开启后会忽略下面的 rules 列表）
 allow_all_hosts: true
 
 # 可选：仅允许指定域名（和上面的 allow_all_hosts 二选一）
-# 指定域名后，则代表允许域名自身及其所有子域名访问该服务(以下方两个为例 example.com、a.example.com 与 b.example2.com、c.b.example2.com )
+# 指定域名后，则代表允许 域名自身 及其 所有子域名 访问服务（以下方两个为例，√ 代表允许，× 代表阻止）
 rules:
-  - example.com
-  - b.example2.com
+  - example.com #    example.com  √ 、a.example.com  √ 、a.a.example.com  √
+  - b.example2.com # example2.com × 、b.example2.com √ 、c.b.example2.com √
 ```
 
 ****
 
-一些示例（注意 `allow_all_hosts:` 和 `rules:` 需要二选一）：
+一些示例：
 
 1. 允许所有域名访问
 
