@@ -29,7 +29,7 @@
 
 下载已编译好的可执行文件并解压：
 
-1. [Github Releases](https://github.com/XIU2/SNIProxy/releases)
+1. [Github Releases](https://github.com/XIU2/SNIProxy/releases)  
 2. [蓝奏云](https://pan.lanzouf.com/b077bn2ri)(密码:xiu2)
 
 ### 配置
@@ -65,7 +65,7 @@ sniproxy.exe -c "config.yaml"
 
 以下命令仅为示例，版本号和文件名请前往 [**Releases**](https://github.com/XIU2/SNIProxy/releases) 查看。
 
-``` yaml
+```yaml
 # 如果是第一次使用，则建议创建新文件夹（后续更新时，跳过该步骤）
 mkdir sniproxy
 
@@ -106,10 +106,10 @@ nohup ./sniproxy -c "config.yaml" > "sni.log" 2>&1 &
 
 下载已编译好的可执行文件并解压：
 
-1. [Github Releases](https://github.com/XIU2/SNIProxy/releases)
+1. [Github Releases](https://github.com/XIU2/SNIProxy/releases)  
 2. [蓝奏云](https://pan.lanzouf.com/b077bn2ri)(密码:xiu2)
 
-``` yaml
+```yaml
 # 进入 sniproxy 压缩包所在目录（记得修改下面示例路径）
 cd /xxx/xxx
 
@@ -130,7 +130,7 @@ chmod a+x sniproxy
 
 ****
 
-```bash
+```css
 home@xiu:~# ./sniproxy -h
 
 SNIProxy vX.X.X
@@ -153,22 +153,22 @@ https://github.com/XIU2/SNIProxy
 
 ## \# 其他说明
 
-#### \# Linux 配置为系统服务 (systemd)
-
-配置为系统服务(systemd)后，支持开机启动、后台运行 及 方便管理。
+#### \# Linux 配置为系统服务 (systemd - 以支持开机启动、后台运行等)
 
 <details>
 <summary><code><strong>「 点击展开 查看内容 」</strong></code></summary>
 
+****
+
 新建一个空的名叫 **sniproxy** 的系统服务配置文件：
 
-``` bash
+```yaml
 nano /etc/systemd/system/sniproxy.service
 ```
 
 修改以下内容后（`ExecStart=` 后面的路径、参数）后粘贴进文件内：
 
-``` bash
+```ini
 [Unit]
 Description=SNI Proxy
 After=network.target
@@ -182,7 +182,7 @@ WantedBy=multi-user.target
 
 设置 **sniproxy** 开机启动并立即启动：
 
-``` bash
+```yaml
 # 设置开机启动
 systemctl enable sniproxy
 
@@ -192,7 +192,7 @@ systemctl start sniproxy
 
 其他可能会用到的命令：
 
-``` bash
+```yaml
 # 停止
 systemctl stop sniproxy
 
@@ -211,7 +211,7 @@ tail -f /home/sniproxy/sni.log
 
 ## Credit
 
-Source from https://github.com/FastGitORG/F-Proxy-Agent (GPL-3.0)
+Source from [FastGitORG/F-Proxy-Agent](https://github.com/FastGitORG/F-Proxy-Agent)(GPL-3.0) and [TachibanaSuzume/SNIProxyGo](https://github.com/TachibanaSuzume/SNIProxyGo)(GPL-3.0)
 
 ****
 
