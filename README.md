@@ -6,9 +6,14 @@
 [![GitHub Star](https://img.shields.io/github/stars/XIU2/SNIProxy.svg?style=flat-square&label=Star&color=00ADD8&logo=github)](https://github.com/XIU2/SNIProxy/)
 [![GitHub Fork](https://img.shields.io/github/forks/XIU2/SNIProxy.svg?style=flat-square&label=Fork&color=00ADD8&logo=github)](https://github.com/XIU2/SNIProxy/)
 
-🧷 自用的一个功能很简单的 SNI Proxy 顺便分享出来给有同样需求的人，用得上的话可以点个⭐支持下~
+🧷 自用的一个功能很简单的 SNI Proxy 顺便分享出来给有同样需求的人，用得上的话可以**点个⭐支持下~**
 
-SNI Proxy 是一个无需加解密的反向代理工具，通过传入的 SNI(域名) 来转发流量至该域名的源站。
+SNI Proxy 是一个无需加解密的反向代理工具，根据传入的 SNI(域名) 来自动转发流量至该域名的源站。
+
+> _分享我其他开源项目：[**TrackersList.com** - 全网热门 BT Tracker 列表！有效提高 BT 下载速度~](https://github.com/XIU2/TrackersListCollection) <img src="https://img.shields.io/github/stars/XIU2/TrackersListCollection.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_  
+> _[**CloudflareSpeedTest** - 🌩「自选优选 IP」测试 Cloudflare CDN 延迟和速度，获取最快 IP~](https://github.com/XIU2/CloudflareSpeedTest) <img src="https://img.shields.io/github/stars/XIU2/CloudflareSpeedTest.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_  
+> _[**UserScript** - 🐵 Github 高速下载、知乎增强、自动无缝翻页、护眼模式 等十几个**油猴脚本**~](https://github.com/XIU2/UserScript) <img src="https://img.shields.io/github/stars/XIU2/UserScript.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_
+
 
 ****
 
@@ -16,22 +21,22 @@ SNI Proxy 是一个无需加解密的反向代理工具，通过传入的 SNI(�
 
 1. **支持** 全平台、全系统（Go 语言特性）
 2. **支持** Socks5 前置代理（比如可以套 WARP+）
-3. **支持** 允许所有域名 或 仅允许指定域名（允许域名自身及其所有子域名）
+3. **支持** 允许所有域名 或 仅允许指定域名（包含域名自身及其所有子域名）
 
 ****
 
 SNI Proxy 的工作流程大概如下：
 
-1. 解析传入连接中的 TLS/SSL 握手消息，以获取客户端发送的 SNI 域名信息。
-2. 判断域名是否位于允许列表中（或开启了 `allow_all_hosts`），如果不在则中断连接，如果在则继续。
+1. 解析传入连接中的 TLS/SSL 握手消息，以获取客户端发送的 **SNI 域名**信息。
+2. 检查域名是否位于允许列表中（或开启了 `allow_all_hosts`），如果不在则中断连接，否则继续。
 3. 使用系统 DNS 解析 SNI 域名获得 IP 地址（即该域名的源站 IP）。
-4. 将流量转发给该域名的源站 IP:443，在客户端和源站服务器之间进行数据传输（即单纯的 TCP 中转/端口转发）。
+4. 将流量转发给该域名的源站 **IP:443**，在客户端和源站服务器之间进行数据传输（即 TCP 中转/端口转发）。
 
 ```javascript
-# 本地通过 Hosts、DNS 等方法将 example.com 域名指向 SNI Proxy 服务器的 IP，然后：
+// 本地通过 Hosts、DNS 等方法将 example.com 域名指向 SNI Proxy 服务器的 IP，然后：
 访问 example.com <=> SNIProxy <=> 源站(example.com)
 
-# 如果 SNI Proxy 开启了前置代理，那么就是这样：
+// 如果 SNI Proxy 开启了前置代理，那么就是这样：
 访问 example.com <=> SNIProxy <=> Socks5 <=> 源站(example.com)
 ```
 
@@ -55,13 +60,13 @@ SNI Proxy 的工作流程大概如下：
 
 找到配置文件 `config.yaml` 右键菜单 - 打开方式 - 记事本。
 
-根据配置文件中的注释（# 开头的）修改配置内容并保存。
+根据配置文件中的注释（# 开头的）解释修改配置内容并保存。
 
 ### 运行
 
-可双击运行 `sniproxy.exe` 文件。
+双击运行 `sniproxy.exe` 文件。
 
-或者也可以在 CMD 命令行中进入软件所在目录并运行 `sniproxy.exe`：
+或者在 CMD 命令行中进入软件所在目录并运行 `sniproxy.exe`：
 
 ```yaml
 # 进入解压后的 sniproxy 程序所在目录（记得修改下面示例路径）
@@ -179,7 +184,7 @@ https://github.com/XIU2/SNIProxy
 
 ****
 
-> 注意：配置文件是 YAML 格式，即按照缩进（即每行前面的空格数量）来确定层级关系的，因此不懂的话请按照默认配置文件内示例的格式为准，其中 ` # ` 的是注释（会被程序忽略），不需要的配置可以注释掉。
+> **注意：**配置文件是 YAML 格式，即按照缩进（即每行前面的空格数量）来确定层级关系的，因此不懂的话请按照默认配置文件内示例的格式为准，其中 ` # ` 的是注释（会被程序忽略），不需要的配置可以注释掉。
 
 目前配置文件中的配置项没几个，分别为：
 
