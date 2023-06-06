@@ -1,7 +1,7 @@
 # 监听端口
 listen_addr: :443
 
-# 可选：启用 Socks5 前置代理（访客 <=> SNIProxy <=> Socks5 <=> 目标网站）
+# 可选：启用 Socks5 前置代理
 #enable_socks5: true
 # 可选：配置 Socks5 代理地址
 #socks_addr: 127.0.0.1:40000
@@ -9,8 +9,7 @@ listen_addr: :443
 # 可选：允许所有域名（会忽略下面的 rules 列表）
 #allow_all_hosts: true
 
-# 可选：仅允许指定域名（和上面的 allow_all_hosts 二选一）
-# 指定域名后，则代表允许域名自身及其所有子域名访问该服务(以下方两个为例 example.com、a.example.com 与 b.example2.com、c.b.example2.com )
+# 可选：仅允许指定域名
 rules:
   - example.com
   - b.example2.com
