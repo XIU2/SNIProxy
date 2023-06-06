@@ -1,0 +1,14 @@
+# 监听端口
+listen_addr: :443
+# 可选：启用 Socks5 代理（访客 <=> SNIProxy <=> Socks5 <=> 目标网站）
+#enable_socks5: true
+# 可选：配置 Socks5 代理地址
+#socks_addr: 127.0.0.1:1080
+# 可选：允许所有域名（会忽略下面的 rules 列表）
+#allow_all_hosts: true
+
+# 仅允许指定域名
+# 如指定 example.com 则代表允许 example.com 及其所有子域名(例如 a.example.com) 访问该服务
+rules:
+  - example.com
+  - aaa.example2.com
