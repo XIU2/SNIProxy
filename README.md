@@ -21,15 +21,15 @@ SNI Proxy 是一个无需加解密的反向代理工具，根据传入的 SNI(�
 
 1. **支持** 全平台、全系统（Go 语言特性）
 2. **支持** Socks5 前置代理（比如可以套 WARP+）
-3. **支持** 允许所有域名 或 仅允许指定域名（包含域名自身及其所有子域名）
+3. **支持** 允许所有域名  仅允许指定域名（包含域名自身及其所有子域名）
 
 ****
 
 SNI Proxy 的工作流程大概如下：
 
 1. 解析传入连接中的 TLS/SSL 握手消息，以获取客户端发送的 **SNI 域名**信息。
-2. 检查域名是否位于允许列表中（或开启了 `allow_all_hosts`），如果不在则中断连接，否则继续。
-3. 使用系统 DNS 解析 SNI 域名获得 IP 地址（即该域名的源站 IP）。
+2. 检查域名是否在允许列表中（或开启了 `allow_all_hosts`），如果不在将中断连接，反之继续。
+3. 使用系统 DNS 解析 SNI 域名获得 IP 地址（即该域名的源站服务器 IP 地址）。
 4. 将流量转发给该域名的源站 **IP:443**，在客户端和源站服务器之间进行数据传输（即 TCP 中转/端口转发）。
 
 ```javascript
@@ -60,7 +60,7 @@ SNI Proxy 的工作流程大概如下：
 
 找到配置文件 `config.yaml` 右键菜单 - 打开方式 - 记事本。
 
-根据配置文件中 # 开头的注释或下面的 [配置文件说明](https://github.com/XIU2/SNIProxy#-配置文件说明-configyaml) 来自定义配置内容并保存。
+根据下面的 [配置文件说明](https://github.com/XIU2/SNIProxy#-配置文件说明-configyaml) 来自定义配置内容并保存。
 
 ### 运行
 
@@ -109,7 +109,7 @@ tar -zxf sniproxy_linux_amd64.tar.gz
 # 赋予执行权限
 chmod +x sniproxy
 
-# 编辑配置文件（根据配置文件中 # 开头的注释或下面的 配置文件说明 来自定义配置内容并保存(按下 Ctrl+X 然后再按 2 下回车)
+# 编辑配置文件（根据下面的 配置文件说明 来自定义配置内容并保存(按下 Ctrl+X 然后再按 2 下回车)
 nano config.yaml
 
 # 运行（不带参数）
@@ -146,7 +146,7 @@ tar -zxf sniproxy_linux_amd64.tar.gz
 # 赋予执行权限
 chmod a+x sniproxy
 
-# 编辑配置文件（根据配置文件中 # 开头的注释或下面的 配置文件说明 来自定义配置内容并保存(按下 Contrl+X 然后再按 2 下回车)
+# 编辑配置文件（根据下面的 配置文件说明 来自定义配置内容并保存(按下 Contrl+X 然后再按 2 下回车)
 nano config.yaml
 
 # 运行（不带参数）
@@ -195,13 +195,22 @@ https://github.com/XIU2/SNIProxy
 目前配置文件中的配置项没几个，分别为：
 
 ```yaml
-# 监听端口
+# 监听端口，常见示例如下：
+# :443          省略 IP 只写端口，代表监听本机所有 IPv4+IPv6 地址的 443 端口
+# 0.0.0.0:443   代表监听本机所有 IPv4 地址的 443 端口
+# 127.0.0.1:443 代表监听本机本地 IPv4 地址的 443 端口（只有本机可访问）
+# [::]:443      代表监听本机所有 IPv6 地址的 443 端口
+# [::1]:443     代表监听本机本地 IPv6 地址的 443 端口（只有本机可访问）
+# 上面示例中的 IP 地址也可以换成例如你的外网 IP，这样的话就只能从该外网 IP 访问了
 listen_addr: :443
 
-# 可选：启用 Socks5 前置代理（访客 <=> SNIProxy <=> Socks5 <=> 目标网站）
+# 可选：启用 Socks5 前置代理
+# （启用前：访客 <=> SNIProxy <=> 目标网站
+# （启用后：访客 <=> SNIProxy <=> Socks5 <=> 目标网站
 enable_socks5: true
 # 可选：配置 Socks5 代理地址
 socks_addr: 127.0.0.1:40000
+# （比如可以套 WARP+，那样就变成：访客 <=> SNIProxy <=> WARP+ <=> 目标网站
 
 # 可选：允许所有域名（会忽略下面的 rules 列表）
 allow_all_hosts: true
@@ -223,6 +232,9 @@ rules:
 listen_addr: :443
 allow_all_hosts: true
 ```
+
+> 注意，开启 allow_all_hosts 时，可能会被他人扫描到而滥用，请悉知！  
+> 建议做一些限制，例如只使用 IPv6（`[::]:443`）或防火墙限制 443 端口的可访问 IP。
 
 2. 仅允许指定域名
 
@@ -390,7 +402,9 @@ go build -o Releases/sniproxy_windows_386/sniproxy.exe -ldflags "-s -w -X main.v
 
 ## Credit
 
-Source from [FastGitORG/F-Proxy-Agent](https://github.com/FastGitORG/F-Proxy-Agent)(GPL-3.0) and [TachibanaSuzume/SNIProxyGo](https://github.com/TachibanaSuzume/SNIProxyGo)(GPL-3.0)
+The source code has been adapted from [FastGitORG/F-Proxy-Agent](https://github.com/FastGitORG/F-Proxy-Agent) and [TachibanaSuzume/SNIProxyGo](https://github.com/TachibanaSuzume/SNIProxyGo) .  
+
+Thank them for their help!
 
 ****
 
