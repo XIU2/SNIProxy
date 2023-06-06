@@ -15,20 +15,58 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var ForwardPort = 443 // 要转发至的目标端口
-var cfg configModel
-
 var (
-	cfgfile        = flag.String("c", "config.yaml", "配置文件") // 配置文件
-	FileLogPath    = flag.String("l", "", "日志文件")            // 日志文件
-	EnableDebug    = flag.Bool("d", false, "调试模式")           // 调试模式（详细日志）
-	ValEnableDebug = false                                   // 调试模式（用于软件内部判断）
+	version string // 编译时写入版本号
+
+	ConfigFilePath string // 配置文件
+	LogFilePath    string // 日志文件
+	EnableDebug    bool   // 调试模式（详细日志）
+
+	ForwardPort = 443       // 要转发至的目标端口
+	cfg         configModel // 配置文件结构
 )
 
+// 配置文件结构
+type configModel struct {
+	ForwardRules  []string `yaml:"rules,omitempty"`
+	ListenAddr    string   `yaml:"listen_addr,omitempty"`
+	EnableSocks   bool     `yaml:"enable_socks5,omitempty"`
+	SocksAddr     string   `yaml:"socks_addr,omitempty"`
+	AllowAllHosts bool     `yaml:"allow_all_hosts,omitempty"`
+}
+
+func init() {
+	var printVersion bool
+	var help = `
+SNIProxy ` + version + `
+https://github.com/XIU2/SNIProxy
+
+参数：
+    -c config.yaml
+        配置文件 (默认 config.yaml)
+    -l sni.log
+        日志文件 (默认 无)
+    -d
+        调试模式 (默认 关)
+    -v
+        程序版本
+    -h
+        帮助说明
+`
+	flag.StringVar(&ConfigFilePath, "c", "config.yaml", "配置文件")
+	flag.StringVar(&LogFilePath, "l", "", "日志文件")
+	flag.BoolVar(&EnableDebug, "d", false, "调试模式")
+	flag.BoolVar(&printVersion, "v", false, "程序版本")
+	flag.Usage = func() { fmt.Print(help) }
+	flag.Parse()
+	if printVersion {
+		fmt.Printf("XIU2/SNIProxy %s\n", version)
+		os.Exit(0)
+	}
+}
+
 func main() {
-	flag.Parse()                       // 解析运行参数
-	ValEnableDebug = *EnableDebug      // 调试模式（详细日志）
-	data, err := os.ReadFile(*cfgfile) // 读取配置文件
+	data, err := os.ReadFile(ConfigFilePath) // 读取配置文件
 	if err != nil {
 		serviceLogger(fmt.Sprintf("配置文件读取失败: %v", err), 31, false)
 		os.Exit(1)
@@ -44,7 +82,7 @@ func main() {
 	for _, rule := range cfg.ForwardRules { // 输出规则中的所有域名
 		serviceLogger(fmt.Sprintf("加载规则: %v", rule), 32, false)
 	}
-	serviceLogger(fmt.Sprintf("调试模式: %v", ValEnableDebug), 32, false)
+	serviceLogger(fmt.Sprintf("调试模式: %v", EnableDebug), 32, false)
 	serviceLogger(fmt.Sprintf("前置代理: %v", cfg.EnableSocks), 32, false)
 	serviceLogger(fmt.Sprintf("任意域名: %v", cfg.AllowAllHosts), 32, false)
 
@@ -407,7 +445,7 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 
 // 输出日志
 func serviceLogger(log string, color int, isDebug bool) {
-	if isDebug && !ValEnableDebug {
+	if isDebug && !EnableDebug {
 		return
 	}
 	log = strings.Replace(log, "\n", "", -1)
@@ -417,8 +455,8 @@ func serviceLogger(log string, color int, isDebug bool) {
 	} else {
 		fmt.Printf("%c[1;0;%dm%s%c[0m\n", 0x1B, color, log, 0x1B)
 	}
-	if *FileLogPath != "" {
-		fd, _ := os.OpenFile(*FileLogPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if LogFilePath != "" {
+		fd, _ := os.OpenFile(LogFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		fdContent := strings.Join([]string{log, "\n"}, "")
 		buf := []byte(fdContent)
 		fd.Write(buf)
