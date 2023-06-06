@@ -8,13 +8,32 @@
 
 🧷 自用的一个功能很简单的 SNI Proxy 顺便分享出来给有同样需求的人，用得上的话可以点个⭐支持下~
 
+SNI Proxy 是一个无需加解密的反向代理工具，通过传入的 SNI(域名) 来转发流量至该域名的源站。
+
 ****
 
-## \# 软件特性
+## \# 软件介绍
 
 1. **支持** 全平台、全系统（Go 语言特性）
 2. **支持** Socks5 前置代理（比如可以套 WARP+）
 3. **支持** 允许所有域名 或 仅允许指定域名（允许域名自身及其所有子域名）
+
+****
+
+SNI Proxy 的工作流程大概如下：
+
+1. 解析传入连接中的 TLS/SSL 握手消息，以获取客户端发送的 SNI 域名信息。
+2. 判断域名是否位于允许列表中（或开启了 `allow_all_hosts`），如果不在则中断连接，如果在则继续。
+3. 使用系统 DNS 解析 SNI 域名获得 IP 地址（即该域名的源站 IP）。
+4. 将流量转发给该域名的源站 IP:443，在客户端和源站服务器之间进行数据传输（即单纯的 TCP 中转/端口转发）。
+
+```javascript
+# 本地通过 Hosts、DNS 等方法将 example.com 域名指向 SNI Proxy 服务器的 IP，然后：
+访问 example.com <=> SNIProxy <=> 源站(example.com)
+
+# 如果 SNI Proxy 开启了前置代理，那么就是这样：
+访问 example.com <=> SNIProxy <=> Socks5 <=> 源站(example.com)
+```
 
 ****
 
@@ -44,14 +63,14 @@
 
 或者也可以在 CMD 命令行中进入软件所在目录并运行 `sniproxy.exe`：
 
-```cmd
-:: 进入解压后的 sniproxy 程序所在目录（记得修改下面示例路径）
+```yaml
+# 进入解压后的 sniproxy 程序所在目录（记得修改下面示例路径）
 cd /d C:\xxx\sniproxy
 
-:: 运行（不带参数）
+# 运行（不带参数）
 sniproxy.exe
 
-:: 运行（带参数示例）
+# 运行（带参数示例）
 sniproxy.exe -c "config.yaml"
 ```
 </details>
@@ -153,6 +172,80 @@ https://github.com/XIU2/SNIProxy
 
 ## \# 其他说明
 
+#### \# 配置文件说明 (config.yaml)
+
+<details>
+<summary><code><strong>「 点击展开 查看内容 」</strong></code></summary>
+
+****
+
+> 注意：配置文件是 YAML 格式，即按照缩进（即每行前面的空格数量）来确定层级关系的，因此不懂的话请按照默认配置文件内示例的格式为准，其中 ` # ` 的是注释（会被程序忽略），不需要的配置可以注释掉。
+
+目前配置文件中的配置项没几个，分别为：
+
+```yaml
+# 监听端口
+listen_addr: :443
+
+# 可选：启用 Socks5 前置代理（访客 <=> SNIProxy <=> Socks5 <=> 目标网站）
+enable_socks5: true
+# 可选：配置 Socks5 代理地址
+socks_addr: 127.0.0.1:40000
+
+# 可选：允许所有域名（会忽略下面的 rules 列表）
+allow_all_hosts: true
+
+# 可选：仅允许指定域名（和上面的 allow_all_hosts 二选一）
+# 指定域名后，则代表允许域名自身及其所有子域名访问该服务(以下方两个为例 example.com、a.example.com 与 b.example2.com、c.b.example2.com )
+rules:
+  - example.com
+  - b.example2.com
+```
+
+****
+
+一些示例（注意 `allow_all_hosts:` 和 `rules:` 需要二选一）：
+
+1. 允许所有域名访问
+
+```yaml
+listen_addr: :443
+allow_all_hosts: true
+```
+
+2. 仅允许指定域名
+
+```yaml
+listen_addr: :443
+rules:
+  - example.com
+  - b.example2.com
+```
+
+3. 允许所有域名访问 + 启用前置代理
+
+```yaml
+listen_addr: :443
+enable_socks5: true
+socks_addr: 127.0.0.1:40000
+allow_all_hosts: true
+```
+
+4. 仅允许指定域名 + 启用前置代理
+
+```yaml
+listen_addr: :443
+enable_socks5: true
+socks_addr: 127.0.0.1:40000
+rules:
+  - example.com
+  - b.example2.com
+```
+
+</details>
+
+****
+
 #### \# Linux 配置为系统服务 (systemd - 以支持开机启动、后台运行等)
 
 <details>
@@ -205,6 +298,81 @@ cat /home/sniproxy/sni.log
 # 实时监听日志（会实时显示最新日志内容）
 tail -f /home/sniproxy/sni.log
 ```
+</details>
+
+****
+
+## 问题反馈
+
+如果你遇到什么问题，可以先去 [**Issues**](https://github.com/XIU2/SNIProxy/issues)、[Discussions](https://github.com/XIU2/SNIProxy/discussions) 里看看是否有别人问过了（记得去看下  [**Closed**](https://github.com/XIU2/SNIProxy/issues?q=is%3Aissue+is%3Aclosed) 的）。  
+如果没找到类似问题，请新开个 [**Issues**](https://github.com/XIU2/SNIProxy/issues/new) 来告诉我！
+
+> **注意**！_与 `反馈问题、功能建议` 无关的，请前往项目内部 论坛 讨论（上面的 `💬 Discussions`_  
+
+****
+
+## 赞赏支持
+
+![微信赞赏](https://cdn.staticaly.com/gh/XIU2/XIU2/master/img/zs-01.png)![支付宝赞赏](https://cdn.staticaly.com/gh/XIU2/XIU2/master/img/zs-02.png)
+
+****
+
+
+## 手动编译
+
+<details>
+<summary><code><strong>「 点击展开 查看内容 」</strong></code></summary>
+
+****
+
+为了方便，我是在编译的时候将版本号写入代码中的 version 变量，因此你手动编译时，需要像下面这样在 `go build` 命令后面加上 `-ldflags` 参数来指定版本号：
+
+```bash
+go build -ldflags "-s -w -X main.version=v1.0.0"
+# 在 SNIProxy 目录中通过命令行（例如 CMD、Bat 脚本）运行该命令，即可编译一个可在和当前设备同样系统、位数、架构的环境下运行的二进制程序（Go 会自动检测你的系统位数、架构）且版本号为 v1.0.0
+```
+
+如果想要在 Windows 64位系统下编译**其他系统、架构、位数**，那么需要指定 **GOOS** 和 **GOARCH** 变量。
+
+例如在 Windows 系统下编译一个适用于 **Linux 系统 amd 架构 64 位**的二进制程序：
+
+```bat
+SET GOOS=linux
+SET GOARCH=amd64
+go build -ldflags "-s -w -X main.version=v1.0.0"
+```
+
+例如在 Linux 系统下编译一个适用于 **Windows 系统 amd 架构 32 位**的二进制程序：
+
+```bash
+GOOS=windows
+GOARCH=386
+go build -ldflags "-s -w -X main.version=v1.0.0"
+```
+
+> 可以运行 `go tool dist list` 来查看当前 Go 版本支持编译哪些组合。
+
+****
+
+当然，为了方便批量编译，我会专门指定一个变量为版本号，后续编译直接调用该版本号变量即可。  
+同时，批量编译的话，还需要分开放到不同文件夹才行（或者文件名不同），需要加上 `-o` 参数指定。
+
+```bat
+:: Windows 系统下是这样：
+SET version=v1.0.0
+SET GOOS=linux
+SET GOARCH=amd64
+go build -o Releases\sniproxy_linux_amd64\sniproxy -ldflags "-s -w -X main.version=%version%"
+```
+
+```bash
+# Linux 系统下是这样：
+version=v1.0.0
+GOOS=windows
+GOARCH=386
+go build -o Releases/sniproxy_windows_386/sniproxy.exe -ldflags "-s -w -X main.version=${version}"
+```
+
 </details>
 
 ****
