@@ -1,0 +1,31 @@
+name: 功能建议 (Feature request)
+description: 有什么建议，或希望添加、完善某个功能...
+labels: 功能建议
+body:
+  - type: markdown
+    attributes:
+      value: |
+        发之前，请先搜下有没有类似的 [**Issues**](https://github.com/XIU2/SNIProxy/issues)、[**Discussions**](https://github.com/XIU2/SNIProxy/discussions) 问题（包括[**已关闭**](https://github.com/XIU2/SNIProxy/issues?q=is%3Aissue+is%3Aclosed)的），请勿重复发起！
+
+        注意！如果你提的功能建议和 SNIProxy **软件本身功能无关**，请**前往讨论区** (💬 [**Discussions**](https://github.com/XIU2/SNIProxy/discussions)) 发帖交流！
+
+        > 另外，不接受**个性化**的功能请求（即 **很少人** 或 **只有你自己** 才会用到的功能）  
+
+        > 注意！SNIProxy 是我自用的，也不打算将其做的太复杂，因此你可以提需求，但我不一定会实现，望理解~
+        ****
+  - type: textarea
+    id: description
+    attributes:
+      label: 功能需求
+      description: 必填，你要什么样的功能？
+      placeholder: 请输入...
+    validations:
+      required: true
+  - type: textarea
+    id: anticipation
+    attributes:
+      label: 预期目标
+      description: 必填，你希望该功能具体是什么样子的？如果能提供 示例/截图/代码 就更好了
+      placeholder: 请输入...
+    validations:
+      required: true

@@ -1,0 +1,33 @@
+name: 反馈问题 (Bug report)
+description: 软件报错等异常情况，或遇到预期之外的问题...
+labels: 反馈问题
+body:
+  - type: markdown
+    attributes:
+      value: |
+        发之前，请先搜下有没有类似的 [**Issues**](https://github.com/XIU2/SNIProxy/issues)、[**Discussions**](https://github.com/XIU2/SNIProxy/discussions) 问题（包括[**已关闭**](https://github.com/XIU2/SNIProxy/issues?q=is%3Aissue+is%3Aclosed)的），请勿重复发起！
+
+        注意！如果你反馈的问题和 SNIProxy **软件本身功能无关**（如网络问题），请**前往讨论区** (💬 [**Discussions**](https://github.com/XIU2/SNIProxy/discussions)) 发帖交流！（不合适的 Issues 会被转过去
+        ****
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 必填，最好写上 复现问题 的步骤，越详细越好，特别是一些复杂的问题
+      placeholder: 请输入...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 软件版本
+      description: 必填，可通过运行软件来获取版本信息（例如 v1.0.0）
+      placeholder: 请输入...
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 附加截图
+      description: 可选，也可以是一些错误代码
+      placeholder: 可在此粘贴图片，或点击下方 [Attach files by dragging & dropping, selecting or pasting them.] 文字来选择图片...
