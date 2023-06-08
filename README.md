@@ -126,7 +126,9 @@ nano config.yaml
 nohup ./sniproxy -c "config.yaml" > "sni.log" 2>&1 &
 ```
 
-> 另外，建议顺便提高一下 [系统文件句柄数上限](https://github.com/XIU2/SNIProxy#-提高系统文件句柄数上限-避免报错-too-many-open-files)，避免遇到报错 too many open files
+> 另外，强烈建议顺便提高一下 [系统文件句柄数上限](https://github.com/XIU2/SNIProxy#-提高系统文件句柄数上限-避免报错-too-many-open-files)，避免遇到报错 **too many open files**  
+
+> 另外，如果你希望 **开机启动、后台运行、方便管理** 等，那么可以将其 [注册为系统服务](https://github.com/XIU2/SNIProxy#-linux-配置为系统服务-systemd---以支持开机启动后台运行等)。
 
 </details>
 
