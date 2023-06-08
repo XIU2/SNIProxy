@@ -13,7 +13,7 @@ body:
     id: description
     attributes:
       label: 问题描述
-      description: 必填，最好写上 复现问题 的步骤，越详细越好，特别是一些复杂的问题
+      description: 必填，最好写上 复现问题 的步骤（越详细越好，特别是一些复杂的问题）+ 配置文件内容，方便排查问题
       placeholder: 请输入...
     validations:
       required: true
