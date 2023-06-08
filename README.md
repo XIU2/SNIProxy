@@ -42,6 +42,10 @@ SNI Proxy 的工作流程大概如下：
 
 ****
 
+注意！SNI Proxy 仅为我个人自写自用的，因此**可靠性、稳定性**等方面肯定**不如专业的商业软件（如 Nginx、HAProxy）**，因此在正式的**生产环境下不建议使用本软件**，如因此造成损失，本项目概不负责（溜了溜了~
+
+****
+
 ## \# 使用方法
 
 <details>
@@ -121,6 +125,8 @@ nano config.yaml
 # 后台运行（带参数示例）
 nohup ./sniproxy -c "config.yaml" > "sni.log" 2>&1 &
 ```
+
+> 另外，建议顺便提高一下 [系统文件句柄数上限](https://github.com/XIU2/SNIProxy#-提高系统文件句柄数上限-避免报错-too-many-open-files)，避免遇到报错 too many open files
 
 </details>
 
@@ -322,6 +328,40 @@ cat /home/sniproxy/sni.log
 tail -f /home/sniproxy/sni.log
 ```
 </details>
+
+****
+
+#### \# 提高系统文件句柄数上限 (避免报错 too many open files)
+
+<details>
+<summary><code><strong>「 点击展开 查看内容 」</strong></code></summary>
+
+****
+
+Linux 系统下，一些人可能会遇到报错（日志如下）：
+```
+接受连接请求时出错: accept tcp [::]:443: accept4: too many open files
+```
+
+这是因为系统的文件句柄数耗尽了（默认 1024），提高系统文件句柄数上限可有效缓解该问题（不能完全解决，因为理论上，当打开文件、连接等等足够多时，迟早会耗尽，一般来说不管是做代理还是做网站，这个操作都是必须的）。
+
+- **临时提高**（重启后恢复为 1024）
+```shell
+ulimit -n 65535
+```
+
+- **永久提高**（重启后依然为 65535，当然打开文件后手动删除就恢复了）
+```shell
+echo "* soft nofile 65535
+* hard nofile 65535
+root soft nofile 65535
+root hard nofile 65535" >> /etc/security/limits.conf
+```
+
+执行以上命令后，需要重启 SNI Proxy 来使其生效，如果还不行请尝试重启系统。
+
+</details>
+
 
 ****
 
