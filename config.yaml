@@ -1,5 +1,5 @@
-# 监听端口
-listen_addr: :443
+# 监听端口（注意需要引号）
+listen_addr: ":443"
 
 # 可选：启用 Socks5 前置代理
 #enable_socks5: true
