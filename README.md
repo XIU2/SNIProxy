@@ -58,7 +58,7 @@ SNI Proxy 的工作流程大概如下：
 下载已编译好的可执行文件并解压：
 
 1. [Github Releases](https://github.com/XIU2/SNIProxy/releases)  
-2. [蓝奏云](https://pan.lanzouj.com/b077bn2ri)(密码:xiu2)
+2. [蓝奏云](https://pan.lanpw.com/b077bn2ri)(密码:xiu2)
 
 ### 配置
 
@@ -142,7 +142,7 @@ nohup ./sniproxy -c "config.yaml" > "sni.log" 2>&1 &
 下载已编译好的可执行文件并解压：
 
 1. [Github Releases](https://github.com/XIU2/SNIProxy/releases)  
-2. [蓝奏云](https://pan.lanzouj.com/b077bn2ri)(密码:xiu2)
+2. [蓝奏云](https://pan.lanpw.com/b077bn2ri)(密码:xiu2)
 
 ```yaml
 # 进入 sniproxy 压缩包所在目录（记得修改下面示例路径）
