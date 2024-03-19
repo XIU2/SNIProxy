@@ -8,9 +8,9 @@
 
 🧷 自用的一个功能很简单的 SNIProxy 顺便分享出来给有同样需求的人，用得上的话可以**点个⭐支持下~**
 
-SNIProxy 是一个根据传入域名(SNI)来端口转发至该域名源服务器的工具，常用于网站负载均衡（多个服务器时）。
+SNIProxy 是一个根据传入域名(SNI)来自动端口转发至该域名源服务器的工具，常用于网站多服务器**负载均衡**，而且因为是通过明文的 SNI 来获取目标域名，因此**不需要 SSL 解密再加密**，转发速度和效率自然也大大提高了。
 
-> 注意：SNIProxy 只是起到一个类似**端口转发、负载均衡**的作用，**无法用于番墙**（因为墙早就能 SNI 阻断了）。
+> 提示：SNIProxy 只是起到一个类似**端口转发、负载均衡**的作用。简单的来说就是 SNIProxy 收到的所有数据都会被**原封不动**的转发给目标源服务器（包括明文的 SNI 域名信息，任何第三方例如墙依然能直接看到），因此 SNIProxy 是 **`无法用于番墙`** 的（否则就是脱裤子放屁 —— **多此一举**~ 毕竟墙早就可以 域名(SNI)阻断 了）。
 
 > _分享我其他开源项目：[**TrackersList.com** - 全网热门 BT Tracker 列表！有效提高 BT 下载速度~](https://github.com/XIU2/TrackersListCollection) <img src="https://img.shields.io/github/stars/XIU2/TrackersListCollection.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_  
 > _[**CloudflareSpeedTest** - 🌩「自选优选 IP」测试 Cloudflare CDN 延迟和速度，获取最快 IP~](https://github.com/XIU2/CloudflareSpeedTest) <img src="https://img.shields.io/github/stars/XIU2/CloudflareSpeedTest.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_  
@@ -31,17 +31,17 @@ SNIProxy 是一个根据传入域名(SNI)来端口转发至该域名源服务器
 
 SNIProxy 的工作流程大概如下：
 
-1. 解析传入连接中的 TLS/SSL 握手消息，以获取客户端发送的 **SNI 域名**信息。
+1. 解析传入连接中的 TLS/SSL 握手消息，以获取访客发送的 **SNI 域名**信息。
 2. 检查域名是否在允许列表中（或开启了 `allow_all_hosts`），如果不在将中断连接，反之继续。
 3. 使用系统 DNS 解析 SNI 域名获得 IP 地址（即该域名的源站服务器 IP 地址）。
-4. 将流量转发给该域名的源站 **IP:443**，在客户端和源站服务器之间进行数据传输（即 TCP 中转/端口转发）。
+4. 将收到的数据原封不动的转发给该域名的源站 **IP:443**，在访客和源站之间建立一个 "桥梁" 进行持续的相互数据传输（即 TCP 中转/端口转发）。
 
 ```javascript
-// 本地通过 Hosts、DNS 等方法将 example.com 域名指向 SNIProxy 服务器的 IP，然后：
-访问 example.com <=> SNIProxy <=> 源站(example.com)
+// 将 example.com 域名指向 SNIProxy 服务器的 IP，然后：
+访问 example.com <=> SNIProxy(解析 SNI 获得目标域名) <=> 源站(example.com)
 
 // 如果 SNIProxy 开启了前置代理，那么就是这样：
-访问 example.com <=> SNIProxy <=> Socks5 <=> 源站(example.com)
+访问 example.com <=> SNIProxy <=> Socks5(解析 SNI 获得目标域名) <=> 源站(example.com)
 ```
 
 > SNIProxy 本质也算是一种**端口转发（中转）**，但不同于端口转发只能指定一个**固定的目标 IP**，SNIProxy 可以通过 DNS 解析传入的域名来获得**灵活的目标 IP**（传入不同的域名走不同目标 IP，可**同时存在**且**互不干扰**）。
