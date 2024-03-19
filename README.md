@@ -6,9 +6,11 @@
 [![GitHub Star](https://img.shields.io/github/stars/XIU2/SNIProxy.svg?style=flat-square&label=Star&color=00ADD8&logo=github)](https://github.com/XIU2/SNIProxy/)
 [![GitHub Fork](https://img.shields.io/github/forks/XIU2/SNIProxy.svg?style=flat-square&label=Fork&color=00ADD8&logo=github)](https://github.com/XIU2/SNIProxy/)
 
-🧷 自用的一个功能很简单的 SNI Proxy 顺便分享出来给有同样需求的人，用得上的话可以**点个⭐支持下~**
+🧷 自用的一个功能很简单的 SNIProxy 顺便分享出来给有同样需求的人，用得上的话可以**点个⭐支持下~**
 
-SNI Proxy 是一个无需加解密的反向代理工具，根据传入的 SNI(域名) 来自动转发流量至该域名的源站。
+SNIProxy 是一个根据传入域名(SNI)来端口转发至该域名源服务器的工具，常用于网站负载均衡（多个服务器时）。
+
+> 注意：SNIProxy 只是起到一个类似**端口转发、负载均衡**的作用，**无法用于番墙**（因为墙早就能 SNI 阻断了）。
 
 > _分享我其他开源项目：[**TrackersList.com** - 全网热门 BT Tracker 列表！有效提高 BT 下载速度~](https://github.com/XIU2/TrackersListCollection) <img src="https://img.shields.io/github/stars/XIU2/TrackersListCollection.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_  
 > _[**CloudflareSpeedTest** - 🌩「自选优选 IP」测试 Cloudflare CDN 延迟和速度，获取最快 IP~](https://github.com/XIU2/CloudflareSpeedTest) <img src="https://img.shields.io/github/stars/XIU2/CloudflareSpeedTest.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_  
@@ -20,14 +22,14 @@ SNI Proxy 是一个无需加解密的反向代理工具，根据传入的 SNI(�
 ## \# 软件介绍
 
 1. **支持** 全平台、全系统（Go 语言特性）
-2. **支持** Socks5 前置代理（比如可以套 WARP+）
+2. **支持** Socks5 前置代理（比如可以再套一层 WARP，这样 SNIProxy 访问源服务器所用的 IP 就是 CF 的了）
 3. **支持** 允许所有域名  仅允许指定域名（包含域名自身及其所有子域名）
 
-> 注意！SNI Proxy 仅为我个人自写自用，**可靠性、稳定性**等方面**不如专业的商业软件（如 Nginx、HAProxy）**，因此在正式的**生产环境下不建议使用本软件**，如造成损失，根据 GPL-3.0 本项目无需承担责任（溜了溜了~
+> 注意！SNIProxy 仅为我个人自写自用，**可靠性、稳定性**等方面**不如专业的商业软件（如 Nginx、HAProxy）**，因此在正式的**生产环境下不建议使用本软件**，如造成损失，根据 GPL-3.0 本项目无需承担责任（溜了溜了~
 
 ****
 
-SNI Proxy 的工作流程大概如下：
+SNIProxy 的工作流程大概如下：
 
 1. 解析传入连接中的 TLS/SSL 握手消息，以获取客户端发送的 **SNI 域名**信息。
 2. 检查域名是否在允许列表中（或开启了 `allow_all_hosts`），如果不在将中断连接，反之继续。
@@ -35,10 +37,10 @@ SNI Proxy 的工作流程大概如下：
 4. 将流量转发给该域名的源站 **IP:443**，在客户端和源站服务器之间进行数据传输（即 TCP 中转/端口转发）。
 
 ```javascript
-// 本地通过 Hosts、DNS 等方法将 example.com 域名指向 SNI Proxy 服务器的 IP，然后：
+// 本地通过 Hosts、DNS 等方法将 example.com 域名指向 SNIProxy 服务器的 IP，然后：
 访问 example.com <=> SNIProxy <=> 源站(example.com)
 
-// 如果 SNI Proxy 开启了前置代理，那么就是这样：
+// 如果 SNIProxy 开启了前置代理，那么就是这样：
 访问 example.com <=> SNIProxy <=> Socks5 <=> 源站(example.com)
 ```
 
@@ -215,7 +217,7 @@ listen_addr: ":443"
 # 可选：启用 Socks5 前置代理
 # （启用前：访客 <=> SNIProxy <=> 目标网站
 # （启用后：访客 <=> SNIProxy <=> Socks5 <=> 目标网站
-# （比如可以套 WARP+，那样就变成：访客 <=> SNIProxy <=> WARP+ <=> 目标网站
+# （比如可以套 WARP，那样就变成：访客 <=> SNIProxy <=> WARP <=> 目标网站
 enable_socks5: true
 # 可选：配置 Socks5 代理地址
 socks_addr: 127.0.0.1:40000
@@ -360,7 +362,7 @@ root soft nofile 65535
 root hard nofile 65535" >> /etc/security/limits.conf
 ```
 
-执行以上命令后，需要重启 SNI Proxy 来使其生效，如果还不行请尝试重启系统。
+执行以上命令后，需要重启 SNIProxy 来使其生效，如果还不行请尝试重启系统。
 
 </details>
 
