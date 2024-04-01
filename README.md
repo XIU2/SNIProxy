@@ -343,6 +343,9 @@ cat /home/sniproxy/sni.log
 
 # 实时监听日志（会实时显示最新日志内容）
 tail -f /home/sniproxy/sni.log
+
+# 如果你修改了 /etc/systemd/system/sniproxy.service 配置文件，那么需要先重载配置后才能启动/重启 sniproxy 服务
+systemctl daemon-reload
 ```
 </details>
 
