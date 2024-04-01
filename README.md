@@ -10,7 +10,7 @@
 
 SNIProxy 是一个根据传入域名(SNI)来自动端口转发至该域名源服务器的工具，常用于网站多服务器**负载均衡**，而且因为是通过明文的 SNI 来获取目标域名，因此**不需要 SSL 解密再加密**，转发速度和效率自然也大大提高了。
 
-> 提示：SNIProxy 只是起到一个类似**端口转发、负载均衡**的作用。简单的来说就是 SNIProxy 收到的所有数据都会被**原封不动**的转发给目标源服务器（包括明文的 SNI 域名信息，任何第三方例如墙依然能直接看到），因此 SNIProxy 是 **`无法用于番墙`** 的（否则就是脱裤子放屁 —— **多此一举**~ 毕竟墙早就可以 域名(SNI)阻断 了）。
+> 提示：SNIProxy 只是起到一个**端口转发、负载均衡**的作用。简单的来说就是 SNIProxy 收到的所有数据都会被**原封不动**的转发给目标源服务器（包括明文的 SNI 域名信息，任何第三方例如墙依然能直接看到），因此 SNIProxy 是 **`无法用来番墙`** 的（否则就是脱裤子放屁 —— **多此一举**！ 毕竟墙早就可以 域名(SNI)阻断 了）。
 
 > _分享我其他开源项目：[**TrackersList.com** - 全网热门 BT Tracker 列表！有效提高 BT 下载速度~](https://github.com/XIU2/TrackersListCollection) <img src="https://img.shields.io/github/stars/XIU2/TrackersListCollection.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_  
 > _[**CloudflareSpeedTest** - 🌩「自选优选 IP」测试 Cloudflare CDN 延迟和速度，获取最快 IP~](https://github.com/XIU2/CloudflareSpeedTest) <img src="https://img.shields.io/github/stars/XIU2/CloudflareSpeedTest.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_  
@@ -22,7 +22,7 @@ SNIProxy 是一个根据传入域名(SNI)来自动端口转发至该域名源服
 ## \# 软件介绍
 
 1. **支持** 全平台、全系统（Go 语言特性）
-2. **支持** Socks5 前置代理（比如可以再套一层 WARP，这样 SNIProxy 访问源服务器所用的 IP 就是 CF 的了）
+2. **支持** Socks5 前置代理（比如可以再套一层 WARP，这样 SNIProxy 的出口 IP 就是 Cloudflare 的了）
 3. **支持** 允许所有域名  仅允许指定域名（包含域名自身及其所有子域名）
 
 > 注意！SNIProxy 仅为我个人自写自用，**可靠性、稳定性**等方面**不如专业的商业软件（如 Nginx、HAProxy）**，因此在正式的**生产环境下不建议使用本软件**，如造成损失，根据 GPL-3.0 本项目无需承担责任（溜了溜了~
@@ -40,15 +40,70 @@ SNIProxy 的工作流程大概如下：
 // 将 example.com 域名指向 SNIProxy 服务器的 IP，然后：
 访问 example.com <=> SNIProxy(解析 SNI 获得目标域名) <=> 源站(example.com)
 
+// 例如：当有多台服务器配置 SNIProxy 后，可以在域名 DNS 解析中指向这些服务器 IP，这样访客就会被随机分配到其中一个服务器上，实现分流负载均衡等。
+// 也可以依靠 DNS 区域解析来给不同地区、运营商的访客指向离它们更近、线路更优的服务器 IP，来间接提高网站的访问速度，提升用户体验。
+
 // 如果 SNIProxy 开启了前置代理，那么就是这样：
 访问 example.com <=> SNIProxy <=> Socks5(解析 SNI 获得目标域名) <=> 源站(example.com)
 ```
 
-> SNIProxy 本质也算是一种**端口转发（中转）**，但不同于端口转发只能指定一个**固定的目标 IP**，SNIProxy 可以通过 DNS 解析传入的域名来获得**灵活的目标 IP**（传入不同的域名走不同目标 IP，可**同时存在**且**互不干扰**）。
+> SNIProxy 本质上也是一种**端口转发（中转）**，但不同于端口转发只能指定一个**固定的目标 IP**，SNIProxy 可以通过 DNS 解析传入的域名来获得**灵活的目标 IP**（传入不同的域名走不同目标 IP，可**同时存在**且**互不干扰**）。
 
 ****
 
 ## \# 使用方法
+
+<details>
+<summary><code><strong>「 点击查看 Linux 系统下的使用示例 」</strong></code></summary>
+
+****
+
+以下命令仅为示例，版本号和文件名请前往 [**Releases**](https://github.com/XIU2/SNIProxy/releases) 查看。
+
+```yaml
+# 如果是第一次使用，则建议创建新文件夹（后续更新时，跳过该步骤）
+mkdir sniproxy
+
+# 进入文件夹（后续更新，只需要从这里重复下面的下载、解压命令即可）
+cd sniproxy
+
+# 下载 sniproxy 压缩包（自行根据需求替换 URL 中 [版本号] 和 [文件名]）
+wget -N https://github.com/XIU2/SNIProxy/releases/download/v1.0.0/sniproxy_linux_amd64.tar.gz
+# 如果你是在国内服务器上下载，那么请使用下面这几个镜像加速：
+# wget -N https://download.scholar.rr.nu/XIU2/SNIProxy/releases/download/v1.0.0/sniproxy_linux_amd64.tar.gz
+# wget -N https://ghproxy.cc/https://github.com/XIU2/SNIProxy/releases/download/v1.0.0/sniproxy_linux_amd64.tar.gz
+# wget -N https://ghproxy.net/https://github.com/XIU2/SNIProxy/releases/download/v1.0.0/sniproxy_linux_amd64.tar.gz
+# wget -N https://gh-proxy.com/https://github.com/XIU2/SNIProxy/releases/download/v1.0.0/sniproxy_linux_amd64.tar.gz
+# wget -N https://mirror.ghproxy.com/https://github.com/XIU2/SNIProxy/releases/download/v1.0.0/sniproxy_linux_amd64.tar.gz
+
+# 如果下载失败的话，尝试删除 -N 参数（如果是为了更新，则记得提前删除旧压缩包 rm sniproxy_linux_amd64.tar.gz ）
+
+# 解压（不需要删除旧文件，会直接覆盖，自行根据需求替换 文件名）
+tar -zxf sniproxy_linux_amd64.tar.gz
+
+# 赋予执行权限
+chmod +x sniproxy
+
+# 编辑配置文件（根据下面的 配置文件说明 来自定义配置内容并保存(按下 Ctrl+X 然后再按 2 下回车)
+nano config.yaml
+
+# 运行（不带参数）
+./sniproxy
+
+# 运行（带参数示例）
+./sniproxy -c "config.yaml"
+
+# 后台运行（带参数示例）
+nohup ./sniproxy -c "config.yaml" > "sni.log" 2>&1 &
+```
+
+> 另外，强烈建议顺便提高一下 [系统文件句柄数上限](https://github.com/XIU2/SNIProxy#-提高系统文件句柄数上限-避免报错-too-many-open-files)，避免遇到报错 **too many open files**  
+
+> 另外，如果你希望 **开机启动、守护进程(异常退出自动恢复)、后台运行、方便管理** 等，那么可以将其 [注册为系统服务](https://github.com/XIU2/SNIProxy#-linux-配置为系统服务-systemd---以支持开机启动守护进程等)。
+
+</details>
+
+****
 
 <details>
 <summary><code><strong>「 点击查看 Windows 系统下的使用示例 」</strong></code></summary>
@@ -75,7 +130,7 @@ SNIProxy 的工作流程大概如下：
 或者在 CMD 命令行中进入软件所在目录并运行 `sniproxy.exe`：
 
 ```yaml
-# 进入解压后的 sniproxy 程序所在目录（记得修改下面示例路径）
+# CMD 命令行中进入解压后的 sniproxy 程序所在目录（记得修改下面示例路径）
 cd /d C:\xxx\sniproxy
 
 # 运行（不带参数）
@@ -84,54 +139,6 @@ sniproxy.exe
 # 运行（带参数示例）
 sniproxy.exe -c "config.yaml"
 ```
-</details>
-
-****
-
-<details>
-<summary><code><strong>「 点击查看 Linux 系统下的使用示例 」</strong></code></summary>
-
-****
-
-以下命令仅为示例，版本号和文件名请前往 [**Releases**](https://github.com/XIU2/SNIProxy/releases) 查看。
-
-```yaml
-# 如果是第一次使用，则建议创建新文件夹（后续更新时，跳过该步骤）
-mkdir sniproxy
-
-# 进入文件夹（后续更新，只需要从这里重复下面的下载、解压命令即可）
-cd sniproxy
-
-# 下载 sniproxy 压缩包（自行根据需求替换 URL 中 [版本号] 和 [文件名]）
-wget -N https://github.com/XIU2/SNIProxy/releases/download/v1.0.0/sniproxy_linux_amd64.tar.gz
-# 如果你是在国内服务器上下载，那么请使用下面这几个镜像加速：
-# wget -N https://download.fastgit.org/XIU2/SNIProxy/releases/download/v1.0.0/sniproxy_linux_amd64.tar.gz
-# wget -N https://ghproxy.com/https://github.com/XIU2/SNIProxy/releases/download/v1.0.0/sniproxy_linux_amd64.tar.gz
-# 如果下载失败的话，尝试删除 -N 参数（如果是为了更新，则记得提前删除旧压缩包 rm sniproxy_linux_amd64.tar.gz ）
-
-# 解压（不需要删除旧文件，会直接覆盖，自行根据需求替换 文件名）
-tar -zxf sniproxy_linux_amd64.tar.gz
-
-# 赋予执行权限
-chmod +x sniproxy
-
-# 编辑配置文件（根据下面的 配置文件说明 来自定义配置内容并保存(按下 Ctrl+X 然后再按 2 下回车)
-nano config.yaml
-
-# 运行（不带参数）
-./sniproxy
-
-# 运行（带参数示例）
-./sniproxy -c "config.yaml"
-
-# 后台运行（带参数示例）
-nohup ./sniproxy -c "config.yaml" > "sni.log" 2>&1 &
-```
-
-> 另外，强烈建议顺便提高一下 [系统文件句柄数上限](https://github.com/XIU2/SNIProxy#-提高系统文件句柄数上限-避免报错-too-many-open-files)，避免遇到报错 **too many open files**  
-
-> 另外，如果你希望 **开机启动、后台运行、方便管理** 等，那么可以将其 [注册为系统服务](https://github.com/XIU2/SNIProxy#-linux-配置为系统服务-systemd---以支持开机启动后台运行等)。
-
 </details>
 
 ****
@@ -147,7 +154,7 @@ nohup ./sniproxy -c "config.yaml" > "sni.log" 2>&1 &
 2. [蓝奏云](https://pan.lanpw.com/b077bn2ri)(密码:xiu2)
 
 ```yaml
-# 进入 sniproxy 压缩包所在目录（记得修改下面示例路径）
+# 通过命令行进入 sniproxy 压缩包所在目录（记得修改下面示例路径）
 cd /xxx/xxx
 
 # 解压（不需要删除旧文件，会直接覆盖，自行根据需求替换 文件名）
