@@ -279,7 +279,7 @@ rules:
 
 ****
 
-#### \# Linux 配置为系统服务 (systemd - 以支持开机启动、后台运行等)
+#### \# Linux 配置为系统服务 (systemd - 以支持开机启动、守护进程等)
 
 <details>
 <summary><code><strong>「 点击展开 查看内容 」</strong></code></summary>
@@ -292,7 +292,7 @@ rules:
 nano /etc/systemd/system/sniproxy.service
 ```
 
-修改以下内容后（`ExecStart=` 后面的路径、参数）后粘贴进文件内：
+修改以下内容后（`ExecStart=` 后面的程序路径、参数）后粘贴进文件内：
 
 ```ini
 [Unit]
@@ -301,15 +301,18 @@ After=network.target
 
 [Service]
 ExecStart=/home/sniproxy/sniproxy -c /home/sniproxy/config.yaml -l /home/sniproxy/sni.log
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 ```
 
+> 其中 `Restart=on-failure` 表示，当程序非正常退出时，会自动恢复启动，也就是常说的守护进程。
+
 设置 **sniproxy** 开机启动并立即启动：
 
 ```yaml
-# 设置开机启动
+# 启用该系统服务 并 允许开机启动
 systemctl enable sniproxy
 
 # 立即启动
@@ -321,6 +324,9 @@ systemctl start sniproxy
 ```yaml
 # 停止
 systemctl stop sniproxy
+
+# 重启
+systemctl restart sniproxy
 
 # 查看运行状态
 systemctl status sniproxy
@@ -363,6 +369,10 @@ root hard nofile 65535" >> /etc/security/limits.conf
 ```
 
 执行以上命令后，需要重启 SNIProxy 来使其生效，如果还不行请尝试重启系统。
+
+```yaml
+systemctl restart sniproxy
+```
 
 </details>
 
