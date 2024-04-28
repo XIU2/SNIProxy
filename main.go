@@ -106,6 +106,7 @@ func startSniProxy() {
 			connection, err := listener.Accept()
 			if err != nil {
 				serviceLogger(fmt.Sprintf("接受连接请求时出错: %v", err), 31, false)
+				continue
 			}
 			raddr := connection.RemoteAddr().(*net.TCPAddr)
 			serviceLogger("连接来自: "+raddr.String(), 32, false)
