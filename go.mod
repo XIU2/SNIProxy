@@ -1,4 +1,4 @@
-module fastgit.org/f-proxy-agent
+module github.com/XIU2/SNIProxy
 
 go 1.18
 
