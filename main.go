@@ -123,7 +123,7 @@ func startSniProxy() {
 func serve(c net.Conn, raddr string) {
 	defer c.Close()
 
-	buf := make([]byte, 1024) // 分配缓冲区
+	buf := make([]byte, 2048) // 分配缓冲区
 	n, err := c.Read(buf)     // 读入新连接的内容
 	if err != nil && fmt.Sprintf("%v", err) != "EOF" {
 		serviceLogger(fmt.Sprintf("读取连接请求时出错: %v", err), 31, false)
