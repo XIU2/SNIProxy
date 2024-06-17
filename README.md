@@ -10,7 +10,8 @@
 
 SNIProxy 是一个根据传入域名(SNI)来自动端口转发至该域名源服务器的工具，常用于网站多服务器**负载均衡**，而且因为是通过明文的 SNI 来获取目标域名，因此**不需要 SSL 解密再加密**，转发速度和效率自然也大大提高了。
 
-> 提示：SNIProxy 只是起到一个**端口转发、负载均衡**的作用。简单的来说就是 SNIProxy 收到的所有数据都会被**原封不动**的转发给目标源服务器（包括明文的 SNI 域名信息，任何第三方例如墙依然能直接看到），因此 SNIProxy 是 **`无法用来番墙`** 的（否则就是脱裤子放屁 —— **多此一举**！ 毕竟墙早就可以 域名(SNI)阻断 了）。
+> [!IMPORTANT]
+> 注意！SNIProxy 只是起到一个**端口转发、负载均衡**的作用。简单的来说就是 SNIProxy 收到的所有数据都会被**原封不动**的转发给目标源服务器（包括明文的 SNI 域名信息，任何第三方例如墙依然能直接看到），因此 SNIProxy 是 **`无法用来番墙`** 的（否则就是脱裤子放屁 —— **多此一举**！ 毕竟墙早就可以 域名(SNI)阻断 了）。
 
 > _分享我其他开源项目：[**TrackersList.com** - 全网热门 BT Tracker 列表！有效提高 BT 下载速度~](https://github.com/XIU2/TrackersListCollection) <img src="https://img.shields.io/github/stars/XIU2/TrackersListCollection.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_  
 > _[**CloudflareSpeedTest** - 🌩「自选优选 IP」测试 Cloudflare CDN 延迟和速度，获取最快 IP~](https://github.com/XIU2/CloudflareSpeedTest) <img src="https://img.shields.io/github/stars/XIU2/CloudflareSpeedTest.svg?style=flat-square&label=Star&color=4285dd&logo=github" height="16px" />_  
@@ -25,6 +26,7 @@ SNIProxy 是一个根据传入域名(SNI)来自动端口转发至该域名源服
 2. **支持** Socks5 前置代理（比如可以再套一层 WARP，这样 SNIProxy 的出口 IP 就是 Cloudflare 的了）
 3. **支持** 允许所有域名  仅允许指定域名（包含域名自身及其所有子域名）
 
+> [!WARNING]
 > 注意！SNIProxy 仅为我个人自写自用，**可靠性、稳定性**等方面**不如专业的商业软件（如 Nginx、HAProxy）**，因此在正式的**生产环境下不建议使用本软件**，如造成损失，根据 GPL-3.0 本项目无需承担责任（溜了溜了~
 
 ****
@@ -47,6 +49,7 @@ SNIProxy 的工作流程大概如下：
 访问 example.com <=> SNIProxy <=> Socks5(解析 SNI 获得目标域名) <=> 源站(example.com)
 ```
 
+> [!TIP]
 > SNIProxy 本质上也是一种**端口转发（中转）**，但不同于端口转发只能指定一个**固定的目标 IP**，SNIProxy 可以通过 DNS 解析传入的域名来获得**灵活的目标 IP**（传入不同的域名走不同目标 IP，可**同时存在**且**互不干扰**）。
 
 ****
@@ -97,7 +100,7 @@ nano config.yaml
 nohup ./sniproxy -c "config.yaml" > "sni.log" 2>&1 &
 ```
 
-> 另外，强烈建议顺便提高一下 [系统文件句柄数上限](https://github.com/XIU2/SNIProxy#-提高系统文件句柄数上限-避免报错-too-many-open-files)，避免遇到报错 **too many open files**  
+> 另外，强烈建议顺便提高一下 [系统文件句柄数上限](https://github.com/XIU2/SNIProxy#-提高系统文件句柄数上限-避免报错-too-many-open-files)，避免遇到报错 **too many open files**
 
 > 另外，如果你希望 **开机启动、守护进程(异常退出自动恢复)、后台运行、方便管理** 等，那么可以将其 [注册为系统服务](https://github.com/XIU2/SNIProxy#-linux-配置为系统服务-systemd---以支持开机启动守护进程等)。
 
@@ -394,7 +397,8 @@ systemctl restart sniproxy
 如果你遇到什么问题，可以先去 [**Issues**](https://github.com/XIU2/SNIProxy/issues)、[Discussions](https://github.com/XIU2/SNIProxy/discussions) 里看看是否有别人问过了（记得去看下  [**Closed**](https://github.com/XIU2/SNIProxy/issues?q=is%3Aissue+is%3Aclosed) 的）。  
 如果没找到类似问题，请新开个 [**Issues**](https://github.com/XIU2/SNIProxy/issues/new) 来告诉我！
 
-> **注意**！_与 `反馈问题、功能建议` 无关的，请前往项目内部 论坛 讨论（上面的 `💬 Discussions`_  
+> [!NOTE]
+> _与 `反馈问题、功能建议` 无关的，请前往项目内部 论坛 讨论（上面的 `💬 Discussions`_  
 
 ****
 
