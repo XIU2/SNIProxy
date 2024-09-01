@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"io"
@@ -124,14 +125,36 @@ func startSniProxy() {
 func serve(c net.Conn, raddr string) {
 	defer c.Close()
 
-	buf := make([]byte, 2048) // 分配缓冲区
-	n, err := c.Read(buf)     // 读入新连接的内容
-	if err != nil && fmt.Sprintf("%v", err) != "EOF" {
-		serviceLogger(fmt.Sprintf("读取连接请求时出错: %v", err), 31, false)
-		return
+	buf := make([]byte, 2048)
+	var fullHeader []byte
+	const maxAttempts = 5 // 最大等待次数
+	attempts := 0
+
+	for {
+		c.SetReadDeadline(time.Now().Add(1500 * time.Millisecond)) // 设置每次循环中读取的超时时间
+		n, err := c.Read(buf)
+		if err != nil && fmt.Sprintf("%v", err) != "EOF" {
+			serviceLogger(fmt.Sprintf("读取连接请求时出错: %v", err), 31, false)
+			return
+		}
+		fullHeader = append(fullHeader, buf[:n]...)
+
+		// 检查是否已经接收到完整的 TLS 握手消息
+		if IsCompleteHandshake(fullHeader) {
+			break // 如果已经完整，那么退出循环
+		}
+
+		attempts++
+		if attempts >= maxAttempts {
+			serviceLogger("接收握手消息超时...", 31, false)
+			return // 如果超过最大等待次数，退出函数
+		}
+	}
+	if attempts > 0 { // 如果等于 0 说明第一次就接收到了完整握手消息，如果大于 0 说明握手消息丢包或分段了
+		serviceLogger("已接收到完整握手消息...", 32, true)
 	}
 
-	ServerName := getSNIServerName(buf[:n]) // 获取 SNI 域名
+	ServerName := getSNIServerName(fullHeader) // 获取 SNI 域名
 
 	if ServerName == "" {
 		serviceLogger("未找到 SNI 域名, 忽略...", 31, true)
@@ -140,16 +163,26 @@ func serve(c net.Conn, raddr string) {
 
 	if cfg.AllowAllHosts { // 如果 allow_all_hosts 为 true 则代表无需判断 SNI 域名
 		serviceLogger(fmt.Sprintf("转发目标: %s:%d", ServerName, ForwardPort), 32, false)
-		forward(c, buf[:n], fmt.Sprintf("%s:%d", ServerName, ForwardPort), raddr)
+		forward(c, fullHeader, fmt.Sprintf("%s:%d", ServerName, ForwardPort), raddr)
 		return
 	}
 
 	for _, rule := range cfg.ForwardRules { // 循环遍历 Rules 中指定的白名单域名
 		if strings.Contains(ServerName, rule) { // 如果 SNI 域名中包含 Rule 白名单域名（例如 www.aa.com 中包含 aa.com）则转发该连接
 			serviceLogger(fmt.Sprintf("转发目标: %s:%d", ServerName, ForwardPort), 32, false)
-			forward(c, buf[:n], fmt.Sprintf("%s:%d", ServerName, ForwardPort), raddr)
+			forward(c, fullHeader, fmt.Sprintf("%s:%d", ServerName, ForwardPort), raddr)
 		}
 	}
+}
+
+// 判断握手消息是否完整
+func IsCompleteHandshake(header []byte) bool {
+	if len(header) < 5 {
+		return false
+	}
+	Length := binary.BigEndian.Uint16(header[3:5])
+	//serviceLogger(fmt.Sprintf("长度检查: %d:%d", len(header), int(Length)+5), 32, true)
+	return len(header) >= int(Length)+5
 }
 
 // 获取 SNI 域名
