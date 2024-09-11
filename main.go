@@ -127,20 +127,21 @@ func serve(c net.Conn, raddr string) {
 
 	buf := make([]byte, 2048)
 	var fullHeader []byte
-	const maxAttempts = 5 // 最大等待次数
+	const maxAttempts = 2
 	attempts := 0
 
 	for {
-		c.SetReadDeadline(time.Now().Add(1500 * time.Millisecond)) // 设置每次循环中读取的超时时间
 		n, err := c.Read(buf)
-		if err != nil && fmt.Sprintf("%v", err) != "EOF" {
+		if err != nil && err != io.EOF {
 			serviceLogger(fmt.Sprintf("读取连接请求时出错: %v", err), 31, false)
 			return
 		}
 		fullHeader = append(fullHeader, buf[:n]...)
 
-		// 检查是否已经接收到完整的 TLS 握手消息
-		if IsCompleteHandshake(fullHeader) {
+		if len(fullHeader) < 5 { // 判断是不是 TLS 握手消息
+			serviceLogger("不是 TLS 握手消息", 31, true)
+			return
+		} else if IsCompleteHandshake(fullHeader) { // 检查是否已经接收到完整的 TLS 握手消息
 			break // 如果已经完整，那么退出循环
 		}
 
@@ -177,11 +178,7 @@ func serve(c net.Conn, raddr string) {
 
 // 判断握手消息是否完整
 func IsCompleteHandshake(header []byte) bool {
-	if len(header) < 5 {
-		return false
-	}
 	Length := binary.BigEndian.Uint16(header[3:5])
-	//serviceLogger(fmt.Sprintf("长度检查: %d:%d", len(header), int(Length)+5), 32, true)
 	return len(header) >= int(Length)+5
 }
 
