@@ -24,7 +24,8 @@ SNIProxy 是一个根据传入域名(SNI)来自动端口转发至该域名源服
 
 - **支持** 全平台、全系统（Go 语言特性）
 - **支持** Socks5 前置代理（比如可以再套一层 WARP，这样 SNIProxy 的出口 IP 就是 Cloudflare 的了）
-- **支持** 允许所有域名  仅允许指定域名（包含域名自身及其所有子域名）
+- **支持** 允许转发所有域名  或 仅允许转发指定域名（包含域名自身及其所有子域名）
+- **支持** 单独或同时监听及传输 IPv4、IPv6 流量
 - **支持** 根据明文 SNI(域名/主机名) 来自动转发流量到该域名的源服务器，无需加解密流量，无需 SSL 密钥或证书
 
 > [!WARNING]
@@ -45,6 +46,10 @@ SNIProxy 的工作流程大概如下：
 ```javascript
 // 将 example.com 域名指向 SNIProxy 服务器的 IP，然后：
 访问 example.com <=> SNIProxy(解析 SNI 获得目标域名) <=> 源站(example.com)
+
+// 按照工作流程更详细一点的：
+访问 example.com <=> SNIProxy [ 解析 SNI 获得 example.com 域名 <=> 检查该域名是否在允许转发 <=> 系统 DNS 解析该域名获得 IP 地址 ] <=> 源站(example.com)
+
 
 // 例如：当有多台服务器配置 SNIProxy 后，可以在域名 DNS 解析中指向这些服务器 IP，这样访客就会被随机分配到其中一个服务器上，实现分流负载均衡等。
 // 也可以依靠 DNS 区域解析来给不同地区、运营商的访客指向离它们更近、线路更优的服务器 IP，来间接提高网站的访问速度，提升用户体验。
@@ -357,6 +362,64 @@ systemctl daemon-reload
 
 ****
 
+#### \# SNIProxy 优先通过 IPv4 还是 IPv6 转发流量给目标域名源服务器？
+
+<details>
+<summary><code><strong>「 点击展开 查看内容 」</strong></code></summary>
+
+****
+
+首先需要清楚，SNIProxy 是通过 IPv4 还是 IPv6 地址转发流量给目标域名源服务器，和你是通过 IPv4 还是 IPv6 访问 SNIProxy 服务***无关***，`"你 与 SNIProxy"` 和 `"SNIProxy 与 源服务器"` **这两个环节是独立的，互不影响的**。
+
+因为 SNIProxy 的 DNS 解析环节是交由系统 DNS 服务处理的，因此对于 SNIProxy 是通过 IPv4 还是 IPv6 地址转发流量给目标域名源服务器，则取决于：
+1. 运行 SNIProxy 的服务器**是否有 IPv4 或 IPv6 地址**（或都有，也就是双栈服务器）
+2. 运行 SNIProxy 的服务器当前系统配置的 **DNS 优先级是 IPv4 优先还是 IPv6 优先**（一般默认都是 IPv6 优先）
+3. 该目标域名解析记录中**是否有 IPv4 或 IPv6 地址**（也就是 A 和 AAAA 记录）
+
+即，如果你的服务器有 IPv6 地址，且系统为默认的 IPv6 优先，那么无论你是通过 IPv4 还是 IPv6 访问的 SNIProxy 服务器，只要该域名有 IPv6 解析地址，那么 SNIProxy 就会通过 IPv6 转发流量给目标域名源服务器。
+
+```javascript
+访问 example.com <=IPv4=> SNIProxy <=优先 IPv6=> 系统 DNS 解析获得该域名的 IP 地址  <=IPv6=> 源站(example.com)
+
+访问 example.com <=IPv6=> SNIProxy <=优先 IPv6=> 系统 DNS 解析获得该域名的 IP 地址  <=IPv6=> 源站(example.com)
+```
+
+假如目标域名解析只有 IPv6 地址，你本地只有 IPv4 地址，但你的服务器有 IPv4+IPv6 地址，那么你就可以通过 IPv4 来访问 SNIProxy，然后 SNIProxy 通过 IPv6 访问目标域名源服务器。
+
+```javascript
+访问 example.com(仅 IPv4) <=IPv4=> SNIProxy(支持 IPv4+IPv6)  <=IPv6=> 源站(example.com 仅 IPv6)
+```
+
+****
+
+关于这个系统 DNS 服务的 IPv4 IPv6 优先级是可以调的（以下为**将默认的 IPv6 优先改为 IPv4 优先**）：
+
+打开并编辑文件（你也可以使用 vim 来编辑）：
+```yaml
+nano /etc/gai.conf
+```
+
+找到以下行：
+```yaml
+#precedence ::ffff:0:0/96  100
+```
+去掉改行行首的 `#` 注释符号，使其变为：
+
+> 如果没有找到的话，可以直接在文件末尾另起一行写上下面这行代码。
+
+```yaml
+precedence ::ffff:0:0/96  100
+```
+按下 `Ctrl+O` 并回车保存文件，然后再按下 `Ctrl+X` 退出当前的 nano 编辑器。
+
+此时随便 `ping` 一个同时拥有 IPv4 及 IPv6 地址的域名，看一下结果是不是 IPv4 地址。
+
+> 另外，修改系统 DNS 优先级后，可能需要清理服务器的 DNS 缓存并重启 SNIProxy 服务。
+
+</details>
+
+****
+
 #### \# 提高系统文件句柄数上限 (避免报错 too many open files)
 
 <details>
@@ -391,7 +454,6 @@ systemctl restart sniproxy
 ```
 
 </details>
-
 
 ****
 
