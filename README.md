@@ -80,12 +80,12 @@ mkdir sniproxy
 cd sniproxy
 
 # 下载 sniproxy 压缩包（自行根据需求替换 URL 中 [版本号] 和 [文件名]）
-wget -N https://github.com/XIU2/SNIProxy/releases/download/v1.0.3/sniproxy_linux_amd64.tar.gz
+wget -N https://github.com/XIU2/SNIProxy/releases/download/v1.0.4/sniproxy_linux_amd64.tar.gz
 # 如果你是在国内服务器上下载，那么请使用下面这几个镜像加速：
-# wget -N https://ghp.ci/https://github.com/XIU2/SNIProxy/releases/download/v1.0.3/sniproxy_linux_amd64.tar.gz
-# wget -N https://ghproxy.cc/https://github.com/XIU2/SNIProxy/releases/download/v1.0.3/sniproxy_linux_amd64.tar.gz
-# wget -N https://ghproxy.net/https://github.com/XIU2/SNIProxy/releases/download/v1.0.3/sniproxy_linux_amd64.tar.gz
-# wget -N https://gh-proxy.com/https://github.com/XIU2/SNIProxy/releases/download/v1.0.3/sniproxy_linux_amd64.tar.gz
+# wget -N https://ghp.ci/https://github.com/XIU2/SNIProxy/releases/download/v1.0.4/sniproxy_linux_amd64.tar.gz
+# wget -N https://ghproxy.cc/https://github.com/XIU2/SNIProxy/releases/download/v1.0.4/sniproxy_linux_amd64.tar.gz
+# wget -N https://ghproxy.net/https://github.com/XIU2/SNIProxy/releases/download/v1.0.4/sniproxy_linux_amd64.tar.gz
+# wget -N https://gh-proxy.com/https://github.com/XIU2/SNIProxy/releases/download/v1.0.4/sniproxy_linux_amd64.tar.gz
 
 # 如果下载失败的话，尝试删除 -N 参数（如果是为了更新，则记得提前删除旧压缩包 rm sniproxy_linux_amd64.tar.gz ）
 
@@ -484,8 +484,8 @@ systemctl restart sniproxy
 为了方便，我是在编译的时候将版本号写入代码中的 version 变量，因此你手动编译时，需要像下面这样在 `go build` 命令后面加上 `-ldflags` 参数来指定版本号：
 
 ```bash
-go build -ldflags "-s -w -X main.version=v1.0.3"
-# 在 SNIProxy 目录中通过命令行（例如 CMD、Bat 脚本）运行该命令，即可编译一个可在和当前设备同样系统、位数、架构的环境下运行的二进制程序（Go 会自动检测你的系统位数、架构）且版本号为 v1.0.3
+go build -ldflags "-s -w -X main.version=v1.0.4"
+# 在 SNIProxy 目录中通过命令行（例如 CMD、Bat 脚本）运行该命令，即可编译一个可在和当前设备同样系统、位数、架构的环境下运行的二进制程序（Go 会自动检测你的系统位数、架构）且版本号为 v1.0.4
 ```
 
 如果想要在 Windows 64位系统下编译**其他系统、架构、位数**，那么需要指定 **GOOS** 和 **GOARCH** 变量。
@@ -495,7 +495,7 @@ go build -ldflags "-s -w -X main.version=v1.0.3"
 ```bat
 SET GOOS=linux
 SET GOARCH=amd64
-go build -ldflags "-s -w -X main.version=v1.0.3"
+go build -ldflags "-s -w -X main.version=v1.0.4"
 ```
 
 例如在 Linux 系统下编译一个适用于 **Windows 系统 amd 架构 32 位**的二进制程序：
@@ -503,7 +503,7 @@ go build -ldflags "-s -w -X main.version=v1.0.3"
 ```bash
 GOOS=windows
 GOARCH=386
-go build -ldflags "-s -w -X main.version=v1.0.3"
+go build -ldflags "-s -w -X main.version=v1.0.4"
 ```
 
 > 可以运行 `go tool dist list` 来查看当前 Go 版本支持编译哪些组合。
@@ -515,7 +515,7 @@ go build -ldflags "-s -w -X main.version=v1.0.3"
 
 ```bat
 :: Windows 系统下是这样：
-SET version=v1.0.3
+SET version=v1.0.4
 SET GOOS=linux
 SET GOARCH=amd64
 go build -o Releases\sniproxy_linux_amd64\sniproxy -ldflags "-s -w -X main.version=%version%"
@@ -523,7 +523,7 @@ go build -o Releases\sniproxy_linux_amd64\sniproxy -ldflags "-s -w -X main.versi
 
 ```bash
 # Linux 系统下是这样：
-version=v1.0.3
+version=v1.0.4
 GOOS=windows
 GOARCH=386
 go build -o Releases/sniproxy_windows_386/sniproxy.exe -ldflags "-s -w -X main.version=${version}"
