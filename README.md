@@ -22,12 +22,17 @@ SNIProxy 是一个根据传入域名(SNI)来自动端口转发至该域名源服
 
 ## \# 软件介绍
 
-1. **支持** 全平台、全系统（Go 语言特性）
-2. **支持** Socks5 前置代理（比如可以再套一层 WARP，这样 SNIProxy 的出口 IP 就是 Cloudflare 的了）
-3. **支持** 允许所有域名  仅允许指定域名（包含域名自身及其所有子域名）
+- **支持** 全平台、全系统（Go 语言特性）
+- **支持** Socks5 前置代理（比如可以再套一层 WARP，这样 SNIProxy 的出口 IP 就是 Cloudflare 的了）
+- **支持** 允许转发所有域名  或 仅允许转发指定域名（包含域名自身及其所有子域名）
+- **支持** 单独或同时监听及传输 IPv4、IPv6 流量
+- **支持** 根据明文 SNI(域名/主机名) 来自动转发流量到该域名的源服务器，无需加解密流量，无需 SSL 密钥或证书
 
 > [!WARNING]
-> 注意！SNIProxy 仅为我个人自写自用，**可靠性、稳定性**等方面**不如专业的商业软件（如 Nginx、HAProxy）**，因此在正式的**生产环境下不建议使用本软件**，如造成损失，根据 GPL-3.0 本项目无需承担责任（溜了溜了~
+> 注意！SNIProxy 仅为我个人自写自用，**可靠性、稳定性**等方面**不如专业的商业软件（如 Nginx、HAProxy）**，因此在正式的**生产环境下不建议使用本软件**，如造成损失，根据 GPL-3.0 本项目无需承担责任（溜了溜了~  
+
+> [!NOTE]
+> 另外，Web 流量一直在不断发展，目前流行的 **HTTP/2** 可以在单个 TCP 流中复用多个主机名，这会导致 SNIProxy **无法根据主机名(域名)来正确转发流量**（因为多个混在了一起）。而 **HTTP/3 (QUIC)** 更是改用 UDP 协议传输，这和 TCP 协议是完全不同的。**SNIProxy 不支持这些协议，也不会去添加支持**，因为这会使项目变得极其复杂（也超出了我的能力，毕竟我只是为了方便自己使用而边学边写的，代码也才几百行罢了）。
 
 ****
 
@@ -41,6 +46,10 @@ SNIProxy 的工作流程大概如下：
 ```javascript
 // 将 example.com 域名指向 SNIProxy 服务器的 IP，然后：
 访问 example.com <=> SNIProxy(解析 SNI 获得目标域名) <=> 源站(example.com)
+
+// 按照工作流程更详细一点的：
+访问 example.com <=> SNIProxy [ 解析 SNI 获得 example.com 域名 <=> 检查该域名是否在允许转发 <=> 系统 DNS 解析该域名获得 IP 地址 ] <=> 源站(example.com)
+
 
 // 例如：当有多台服务器配置 SNIProxy 后，可以在域名 DNS 解析中指向这些服务器 IP，这样访客就会被随机分配到其中一个服务器上，实现分流负载均衡等。
 // 也可以依靠 DNS 区域解析来给不同地区、运营商的访客指向离它们更近、线路更优的服务器 IP，来间接提高网站的访问速度，提升用户体验。
@@ -71,12 +80,12 @@ mkdir sniproxy
 cd sniproxy
 
 # 下载 sniproxy 压缩包（自行根据需求替换 URL 中 [版本号] 和 [文件名]）
-wget -N https://github.com/XIU2/SNIProxy/releases/download/v1.0.3/sniproxy_linux_amd64.tar.gz
+wget -N https://github.com/XIU2/SNIProxy/releases/download/v1.0.4/sniproxy_linux_amd64.tar.gz
 # 如果你是在国内服务器上下载，那么请使用下面这几个镜像加速：
-# wget -N https://ghproxy.cc/https://github.com/XIU2/SNIProxy/releases/download/v1.0.3/sniproxy_linux_amd64.tar.gz
-# wget -N https://ghproxy.net/https://github.com/XIU2/SNIProxy/releases/download/v1.0.3/sniproxy_linux_amd64.tar.gz
-# wget -N https://gh-proxy.com/https://github.com/XIU2/SNIProxy/releases/download/v1.0.3/sniproxy_linux_amd64.tar.gz
-# wget -N https://mirror.ghproxy.com/https://github.com/XIU2/SNIProxy/releases/download/v1.0.3/sniproxy_linux_amd64.tar.gz
+# wget -N https://ghp.ci/https://github.com/XIU2/SNIProxy/releases/download/v1.0.4/sniproxy_linux_amd64.tar.gz
+# wget -N https://ghproxy.cc/https://github.com/XIU2/SNIProxy/releases/download/v1.0.4/sniproxy_linux_amd64.tar.gz
+# wget -N https://ghproxy.net/https://github.com/XIU2/SNIProxy/releases/download/v1.0.4/sniproxy_linux_amd64.tar.gz
+# wget -N https://gh-proxy.com/https://github.com/XIU2/SNIProxy/releases/download/v1.0.4/sniproxy_linux_amd64.tar.gz
 
 # 如果下载失败的话，尝试删除 -N 参数（如果是为了更新，则记得提前删除旧压缩包 rm sniproxy_linux_amd64.tar.gz ）
 
@@ -353,6 +362,64 @@ systemctl daemon-reload
 
 ****
 
+#### \# SNIProxy 优先通过 IPv4 还是 IPv6 转发流量给目标域名源服务器？
+
+<details>
+<summary><code><strong>「 点击展开 查看内容 」</strong></code></summary>
+
+****
+
+首先需要清楚，SNIProxy 是通过 IPv4 还是 IPv6 地址转发流量给目标域名源服务器，和你是通过 IPv4 还是 IPv6 访问 SNIProxy 服务***无关***，`"你 与 SNIProxy"` 和 `"SNIProxy 与 源服务器"` **这两个环节是独立的，互不影响的**。
+
+因为 SNIProxy 的 DNS 解析环节是交由系统 DNS 服务处理的，因此对于 SNIProxy 是通过 IPv4 还是 IPv6 地址转发流量给目标域名源服务器，则取决于：
+1. 运行 SNIProxy 的服务器**是否有 IPv4 或 IPv6 地址**（或都有，也就是双栈服务器）
+2. 运行 SNIProxy 的服务器当前系统配置的 **DNS 优先级是 IPv4 优先还是 IPv6 优先**（一般默认都是 IPv6 优先）
+3. 该目标域名解析记录中**是否有 IPv4 或 IPv6 地址**（也就是 A 和 AAAA 记录）
+
+即，如果你的服务器有 IPv6 地址，且系统为默认的 IPv6 优先，那么无论你是通过 IPv4 还是 IPv6 访问的 SNIProxy 服务器，只要该域名有 IPv6 解析地址，那么 SNIProxy 就会通过 IPv6 转发流量给目标域名源服务器。
+
+```javascript
+访问 example.com <=IPv4=> SNIProxy <=优先 IPv6=> 系统 DNS 解析获得该域名的 IP 地址  <=IPv6=> 源站(example.com)
+
+访问 example.com <=IPv6=> SNIProxy <=优先 IPv6=> 系统 DNS 解析获得该域名的 IP 地址  <=IPv6=> 源站(example.com)
+```
+
+假如目标域名解析只有 IPv6 地址，你本地只有 IPv4 地址，但你的服务器有 IPv4+IPv6 地址，那么你就可以通过 IPv4 来访问 SNIProxy，然后 SNIProxy 通过 IPv6 访问目标域名源服务器。
+
+```javascript
+访问 example.com(仅 IPv4) <=IPv4=> SNIProxy(支持 IPv4+IPv6)  <=IPv6=> 源站(example.com 仅 IPv6)
+```
+
+****
+
+关于这个系统 DNS 服务的 IPv4 IPv6 优先级是可以调的（以下为**将默认的 IPv6 优先改为 IPv4 优先**）：
+
+打开并编辑文件（你也可以使用 vim 来编辑）：
+```yaml
+nano /etc/gai.conf
+```
+
+找到以下行：
+```yaml
+#precedence ::ffff:0:0/96  100
+```
+去掉改行行首的 `#` 注释符号，使其变为：
+
+> 如果没有找到的话，可以直接在文件末尾另起一行写上下面这行代码。
+
+```yaml
+precedence ::ffff:0:0/96  100
+```
+按下 `Ctrl+O` 并回车保存文件，然后再按下 `Ctrl+X` 退出当前的 nano 编辑器。
+
+此时随便 `ping` 一个同时拥有 IPv4 及 IPv6 地址的域名，看一下结果是不是 IPv4 地址。
+
+> 另外，修改系统 DNS 优先级后，可能需要清理服务器的 DNS 缓存并重启 SNIProxy 服务。
+
+</details>
+
+****
+
 #### \# 提高系统文件句柄数上限 (避免报错 too many open files)
 
 <details>
@@ -388,7 +455,6 @@ systemctl restart sniproxy
 
 </details>
 
-
 ****
 
 ## 问题反馈
@@ -418,8 +484,8 @@ systemctl restart sniproxy
 为了方便，我是在编译的时候将版本号写入代码中的 version 变量，因此你手动编译时，需要像下面这样在 `go build` 命令后面加上 `-ldflags` 参数来指定版本号：
 
 ```bash
-go build -ldflags "-s -w -X main.version=v1.0.3"
-# 在 SNIProxy 目录中通过命令行（例如 CMD、Bat 脚本）运行该命令，即可编译一个可在和当前设备同样系统、位数、架构的环境下运行的二进制程序（Go 会自动检测你的系统位数、架构）且版本号为 v1.0.3
+go build -ldflags "-s -w -X main.version=v1.0.4"
+# 在 SNIProxy 目录中通过命令行（例如 CMD、Bat 脚本）运行该命令，即可编译一个可在和当前设备同样系统、位数、架构的环境下运行的二进制程序（Go 会自动检测你的系统位数、架构）且版本号为 v1.0.4
 ```
 
 如果想要在 Windows 64位系统下编译**其他系统、架构、位数**，那么需要指定 **GOOS** 和 **GOARCH** 变量。
@@ -429,7 +495,7 @@ go build -ldflags "-s -w -X main.version=v1.0.3"
 ```bat
 SET GOOS=linux
 SET GOARCH=amd64
-go build -ldflags "-s -w -X main.version=v1.0.3"
+go build -ldflags "-s -w -X main.version=v1.0.4"
 ```
 
 例如在 Linux 系统下编译一个适用于 **Windows 系统 amd 架构 32 位**的二进制程序：
@@ -437,7 +503,7 @@ go build -ldflags "-s -w -X main.version=v1.0.3"
 ```bash
 GOOS=windows
 GOARCH=386
-go build -ldflags "-s -w -X main.version=v1.0.3"
+go build -ldflags "-s -w -X main.version=v1.0.4"
 ```
 
 > 可以运行 `go tool dist list` 来查看当前 Go 版本支持编译哪些组合。
@@ -449,7 +515,7 @@ go build -ldflags "-s -w -X main.version=v1.0.3"
 
 ```bat
 :: Windows 系统下是这样：
-SET version=v1.0.3
+SET version=v1.0.4
 SET GOOS=linux
 SET GOARCH=amd64
 go build -o Releases\sniproxy_linux_amd64\sniproxy -ldflags "-s -w -X main.version=%version%"
@@ -457,7 +523,7 @@ go build -o Releases\sniproxy_linux_amd64\sniproxy -ldflags "-s -w -X main.versi
 
 ```bash
 # Linux 系统下是这样：
-version=v1.0.3
+version=v1.0.4
 GOOS=windows
 GOARCH=386
 go build -o Releases/sniproxy_windows_386/sniproxy.exe -ldflags "-s -w -X main.version=${version}"
