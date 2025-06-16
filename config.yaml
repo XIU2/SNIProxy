@@ -1,15 +1,17 @@
 # 监听端口（注意需要引号）
 listen_addr: ":443"
+# 可选：下面这个的作用是用来将传入的 HTTP 重定向为 HTTPS（固定的 443 端口和上面配置无关），如果没写将不监听及处理 HTTP 连接
+#listen_addr_http: ":80"
 
 # 可选：启用 Socks5 前置代理
 #enable_socks5: true
 # 可选：配置 Socks5 代理地址
 #socks_addr: 127.0.0.1:40000
 
-# 可选：允许所有域名（会忽略下面的 rules 列表）
+# 二选一：允许所有域名（开启后会忽略下面的 rules 列表，二选一）
 #allow_all_hosts: true
 
-# 可选：仅允许指定域名
+# 二选一：仅允许指定域名（和上面的 allow_all_hosts 二选一）
 rules:
   - example.com
   - b.example2.com

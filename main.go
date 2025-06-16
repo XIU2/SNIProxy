@@ -13,9 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	// "net/http"
-	// _ "net/http/pprof"
-
 	"gopkg.in/yaml.v2"
 )
 
@@ -32,11 +29,12 @@ var (
 
 // 配置文件结构
 type configModel struct {
-	ForwardRules  []string `yaml:"rules,omitempty"`
-	ListenAddr    string   `yaml:"listen_addr,omitempty"`
-	EnableSocks   bool     `yaml:"enable_socks5,omitempty"`
-	SocksAddr     string   `yaml:"socks_addr,omitempty"`
-	AllowAllHosts bool     `yaml:"allow_all_hosts,omitempty"`
+	ForwardRules   []string `yaml:"rules,omitempty"`
+	ListenAddr     string   `yaml:"listen_addr,omitempty"`
+	ListenAddrHTTP string   `yaml:"listen_addr_http,omitempty"`
+	EnableSocks    bool     `yaml:"enable_socks5,omitempty"`
+	SocksAddr      string   `yaml:"socks_addr,omitempty"`
+	AllowAllHosts  bool     `yaml:"allow_all_hosts,omitempty"`
 }
 
 func init() {
@@ -69,12 +67,6 @@ https://github.com/XIU2/SNIProxy
 	}
 }
 
-// func webPprof() {
-// 	if err := http.ListenAndServe(":6060", nil); err != nil {
-// 		serviceLogger(fmt.Sprintf("启动 pprof 服务失败: %v", err), 31, false)
-// 	}
-// }
-
 func main() {
 	data, err := os.ReadFile(ConfigFilePath) // 读取配置文件
 	if err != nil {
@@ -89,6 +81,9 @@ func main() {
 		serviceLogger("配置文件中 rules 不能为空（除非 allow_all_hosts 等于 true）!", 31, false)
 		os.Exit(1)
 	}
+	if len(cfg.ListenAddr) <= 0 {
+		cfg.ListenAddr = ":443" // 如果没有指定 listen_addr 则默认监听 443 端口
+	}
 	for _, rule := range cfg.ForwardRules { // 输出规则中的所有域名
 		serviceLogger(fmt.Sprintf("加载规则: %v", rule), 32, false)
 	}
@@ -96,7 +91,6 @@ func main() {
 	serviceLogger(fmt.Sprintf("前置代理: %v", cfg.EnableSocks), 32, false)
 	serviceLogger(fmt.Sprintf("任意域名: %v", cfg.AllowAllHosts), 32, false)
 
-	// go webPprof()   // 启动 pprof 服务
 	startSniProxy() // 启动 SNI Proxy
 }
 
@@ -104,9 +98,35 @@ func main() {
 func startSniProxy() {
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// 如果配置了 listen_addr_http，则启动 HTTP 监听（用于 301 重定向至 HTTPS）
+	if cfg.ListenAddrHTTP != "" {
+		listenerHTTP, err := net.Listen("tcp", cfg.ListenAddrHTTP)
+		if err != nil {
+			serviceLogger(fmt.Sprintf("监听失败(HTTP): %s -> %v", cfg.ListenAddrHTTP, err), 31, false)
+			os.Exit(1)
+		}
+		serviceLogger(fmt.Sprintf("开始监听: %v", listenerHTTP.Addr()), 0, false)
+
+		go func(listenerHTTP net.Listener) {
+			defer listenerHTTP.Close()
+			for {
+				conn, err := listenerHTTP.Accept()
+				if err != nil {
+					serviceLogger(fmt.Sprintf("接受连接请求时出错(HTTP): %v", err), 31, false)
+					continue
+				}
+				raddr := conn.RemoteAddr().(*net.TCPAddr)
+				serviceLogger("连接来自: "+raddr.String(), 32, false)
+				go handleHTTPRedirect(conn) // 有新连接进来，启动一个新线程处理
+			}
+		}(listenerHTTP)
+	}
+
+	// 启动 HTTPS 监听
 	listener, err := net.Listen("tcp", cfg.ListenAddr)
 	if err != nil {
-		serviceLogger(fmt.Sprintf("监听失败: %v", err), 31, false)
+		serviceLogger(fmt.Sprintf("监听失败(HTTPS): %s -> %v", cfg.ListenAddrHTTP, err), 31, false)
 		os.Exit(1)
 	}
 	serviceLogger(fmt.Sprintf("开始监听: %v", listener.Addr()), 0, false)
@@ -114,16 +134,18 @@ func startSniProxy() {
 	go func(listener net.Listener) {
 		defer listener.Close()
 		for {
-			connection, err := listener.Accept()
+			conn, err := listener.Accept()
 			if err != nil {
-				serviceLogger(fmt.Sprintf("接受连接请求时出错: %v", err), 31, false)
+				serviceLogger(fmt.Sprintf("接受连接请求时出错(HTTPS): %v", err), 31, false)
 				continue
 			}
-			raddr := connection.RemoteAddr().(*net.TCPAddr)
+			raddr := conn.RemoteAddr().(*net.TCPAddr)
 			serviceLogger("连接来自: "+raddr.String(), 32, false)
-			go serve(connection, raddr.String()) // 有新连接进来，启动一个新线程处理
+			go serve(conn, raddr.String()) // 有新连接进来，启动一个新线程处理
 		}
 	}(listener)
+
+	// 收到终止信号时退出
 	ch := make(chan os.Signal, 2)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	s := <-ch
@@ -131,9 +153,69 @@ func startSniProxy() {
 	fmt.Printf("\n接收到信号 %s, 退出.\n", s)
 }
 
-// 处理新连接
-func serve(c net.Conn, raddr string) {
-	defer c.Close()
+// 处理 HTTP 重定向至 HTTPS
+func handleHTTPRedirect(conn net.Conn) {
+	defer conn.Close()
+	buf := make([]byte, 1024)
+	n, err := conn.Read(buf)
+	if err != nil || n == 0 {
+		return
+	}
+	data := string(buf[:n])
+	lines := strings.Split(data, "\r\n")
+	if len(lines) == 0 {
+		return
+	}
+	// 解析请求行，获得路径
+	reqLine := strings.Fields(lines[0])
+	if len(reqLine) < 2 {
+		return
+	}
+	path := reqLine[1]
+	// 解析 Host，获得域名
+	var host string
+	for _, line := range lines[1:] {
+		if strings.HasPrefix(strings.ToLower(line), "host:") {
+			host = strings.TrimSpace(line[5:])
+			break
+		}
+	}
+	// 如果没有 Host 或者 Host 为空，则不进行重定向，直接断开连接
+	if host == "" {
+		serviceLogger("未找到 HTTP 连接中的域名, 忽略...", 31, true)
+		return
+	}
+
+	if cfg.AllowAllHosts { // 如果 allow_all_hosts 为 true 则代表无需判断 http 域名
+		sendHTTPRedirect(conn, host, path)
+		return
+	}
+	for _, rule := range cfg.ForwardRules { // 循环遍历 Rules 中指定的白名单域名
+		if strings.Contains(host, rule) { // 如果 http 域名中包含 Rule 白名单域名（例如 www.aa.com 中包含 aa.com）则重定向该 HTTP 连接为 HTTPS
+			sendHTTPRedirect(conn, host, path)
+			return
+		} else {
+			serviceLogger(fmt.Sprintf("域名 %s 不在允许域名列表中, 忽略(http)...", host), 31, true)
+		}
+	}
+}
+
+// 发送 301 跳转响应的函数
+func sendHTTPRedirect(conn net.Conn, host, path string) {
+	// 生成 301 重定向响应
+	location := "https://" + host + path
+	resp := fmt.Sprintf("HTTP/1.1 301 Moved Permanently\r\nLocation: %s\r\nConnection: close\r\nContent-Length: 0\r\n\r\n", location)
+	serviceLogger(fmt.Sprintf("重定向至: %s", location), 34, false)
+	// 发送响应
+	_, err := conn.Write([]byte(resp))
+	if err != nil {
+		serviceLogger(fmt.Sprintf("无法传输到后端(HTTP), %v", err), 31, false)
+	}
+}
+
+// 处理 HTTPS 新连接
+func serve(conn net.Conn, raddr string) {
+	defer conn.Close()
 
 	buf := make([]byte, 2048)
 	var fullHeader []byte
@@ -141,7 +223,7 @@ func serve(c net.Conn, raddr string) {
 	attempts := 0
 
 	for {
-		n, err := c.Read(buf)
+		n, err := conn.Read(buf)
 		if err != nil && err != io.EOF {
 			serviceLogger(fmt.Sprintf("读取连接请求时出错: %v", err), 31, false)
 			return
@@ -174,14 +256,16 @@ func serve(c net.Conn, raddr string) {
 
 	if cfg.AllowAllHosts { // 如果 allow_all_hosts 为 true 则代表无需判断 SNI 域名
 		serviceLogger(fmt.Sprintf("转发目标: %s:%d", ServerName, ForwardPort), 32, false)
-		forward(c, fullHeader, fmt.Sprintf("%s:%d", ServerName, ForwardPort), raddr)
+		forward(conn, fullHeader, fmt.Sprintf("%s:%d", ServerName, ForwardPort), raddr)
 		return
 	}
 
 	for _, rule := range cfg.ForwardRules { // 循环遍历 Rules 中指定的白名单域名
 		if strings.Contains(ServerName, rule) { // 如果 SNI 域名中包含 Rule 白名单域名（例如 www.aa.com 中包含 aa.com）则转发该连接
 			serviceLogger(fmt.Sprintf("转发目标: %s:%d", ServerName, ForwardPort), 32, false)
-			forward(c, fullHeader, fmt.Sprintf("%s:%d", ServerName, ForwardPort), raddr)
+			forward(conn, fullHeader, fmt.Sprintf("%s:%d", ServerName, ForwardPort), raddr)
+		} else {
+			serviceLogger(fmt.Sprintf("域名 %s 不在允许域名列表中, 忽略(https)...", ServerName), 31, true)
 		}
 	}
 }
@@ -233,7 +317,7 @@ func getSNIServerName(buf []byte) string {
 	return msg.serverName
 }
 
-// forward 函数接收一个 net.Conn 类型的连接对象 conn、一个 []byte 类型的数据 data、一个目标地址 dst、一个来源地址 raddr
+// forward 函数接收一个 net.Conn 类型的连接对象 conn、一个 []byte 类型的数据 data、一个目标地址 dst 和一个来源地址 raddr
 // 该函数使用 GetDialer 函数创建一个与目标地址 dst 的后端连接 backend，将 data 写入 backend，然后使用 ioReflector 函数将 backend 和 conn 连接起来，以便将数据从一个连接转发到另一个连接
 func forward(conn net.Conn, data []byte, dst string, raddr string) {
 	backend, err := GetDialer(cfg.EnableSocks).Dial("tcp", dst)
