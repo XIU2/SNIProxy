@@ -249,6 +249,8 @@ allow_all_hosts: true
 
 # 二选一：仅允许指定域名（和上面的 allow_all_hosts 二选一）
 # 指定域名后，则代表允许 域名自身 及其 所有子域名 访问服务（以下方两个为例，√ 代表允许，× 代表阻止）
+# 如果有非允许的域名请求访问，日志将显示为红色醒目的（这样可以检查是否泄露或被扫描了）：
+# 2025/06/16 10:44:55 域名 xxx 不在允许规则中, 忽略(且会注明是来自 http 或 https)...
 rules:
   - example.com #    example.com  √ 、a.example.com  √ 、a.a.example.com  √
   - b.example2.com # example2.com × 、b.example2.com √ 、c.b.example2.com √
