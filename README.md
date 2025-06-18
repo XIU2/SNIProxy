@@ -334,6 +334,7 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 ```
+> 如果你需要详细日志（调试模式），那么可以加上 `-d` 运行参数到 `ExecStart=...` 行末尾（注意加上空格分隔）。
 
 > 其中 `Restart=on-failure` 表示，当程序非正常退出时，会自动恢复启动，也就是常说的守护进程。
 
