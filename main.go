@@ -159,16 +159,19 @@ func handleHTTPRedirect(conn net.Conn) {
 	buf := make([]byte, 1024)
 	n, err := conn.Read(buf)
 	if err != nil || n == 0 {
+		serviceLogger(fmt.Sprintf("读取连接请求时出错(HTTP): %v", err), 31, false)
 		return
 	}
 	data := string(buf[:n])
 	lines := strings.Split(data, "\r\n")
 	if len(lines) == 0 {
+		serviceLogger("不是 HTTP/1.1 消息", 31, true)
 		return
 	}
 	// 解析请求行，获得路径
 	reqLine := strings.Fields(lines[0])
 	if len(reqLine) < 2 {
+		serviceLogger("解析 HTTP/1.1 请求异常", 31, true)
 		return
 	}
 	path := reqLine[1]
@@ -182,7 +185,7 @@ func handleHTTPRedirect(conn net.Conn) {
 	}
 	// 如果没有 Host 或者 Host 为空，则不进行重定向，直接断开连接
 	if host == "" {
-		serviceLogger("未找到 HTTP 连接中的域名, 忽略...", 31, true)
+		serviceLogger("未找到域名(HTTP), 忽略...", 31, true)
 		return
 	}
 
@@ -195,7 +198,7 @@ func handleHTTPRedirect(conn net.Conn) {
 			sendHTTPRedirect(conn, host, path)
 			return
 		} else {
-			serviceLogger(fmt.Sprintf("域名 %s 不在允许域名列表中, 忽略(http)...", host), 31, true)
+			serviceLogger(fmt.Sprintf("域名 %s 不在允许域名列表中, 忽略(http)...", host), 31, false)
 		}
 	}
 }
@@ -225,7 +228,7 @@ func serve(conn net.Conn, raddr string) {
 	for {
 		n, err := conn.Read(buf)
 		if err != nil && err != io.EOF {
-			serviceLogger(fmt.Sprintf("读取连接请求时出错: %v", err), 31, false)
+			serviceLogger(fmt.Sprintf("读取连接请求时出错(HTTPS): %v", err), 31, false)
 			return
 		}
 		fullHeader = append(fullHeader, buf[:n]...)
@@ -250,7 +253,7 @@ func serve(conn net.Conn, raddr string) {
 	ServerName := getSNIServerName(fullHeader) // 获取 SNI 域名
 
 	if ServerName == "" {
-		serviceLogger("未找到 SNI 域名, 忽略...", 31, true)
+		serviceLogger("未找到 SNI 域名(HTTPS), 忽略...", 31, true)
 		return
 	}
 
@@ -265,7 +268,7 @@ func serve(conn net.Conn, raddr string) {
 			serviceLogger(fmt.Sprintf("转发目标: %s:%d", ServerName, ForwardPort), 32, false)
 			forward(conn, fullHeader, fmt.Sprintf("%s:%d", ServerName, ForwardPort), raddr)
 		} else {
-			serviceLogger(fmt.Sprintf("域名 %s 不在允许域名列表中, 忽略(https)...", ServerName), 31, true)
+			serviceLogger(fmt.Sprintf("域名 %s 不在允许域名列表中, 忽略(https)...", ServerName), 31, false)
 		}
 	}
 }
