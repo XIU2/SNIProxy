@@ -34,6 +34,8 @@ type configModel struct {
 	ListenAddrHTTP string   `yaml:"listen_addr_http,omitempty"`
 	EnableSocks    bool     `yaml:"enable_socks5,omitempty"`
 	SocksAddr      string   `yaml:"socks_addr,omitempty"`
+	SocksUsername  string   `yaml:"socks_username,omitempty"`
+	SocksPassword  string   `yaml:"socks_password,omitempty"`
 	AllowAllHosts  bool     `yaml:"allow_all_hosts,omitempty"`
 }
 
@@ -325,14 +327,14 @@ func getSNIServerName(buf []byte) string {
 func forward(conn net.Conn, data []byte, dst string, raddr string) {
 	backend, err := GetDialer(cfg.EnableSocks).Dial("tcp", dst)
 	if err != nil {
-		serviceLogger(fmt.Sprintf("无法连接到后端, %v", err), 31, false)
+		serviceLogger(fmt.Sprintf("无法连接到后端(HTTPS), %v", err), 31, false)
 		return
 	}
 
 	defer backend.Close()
 
 	if _, err = backend.Write(data); err != nil {
-		serviceLogger(fmt.Sprintf("无法传输到后端, %v", err), 31, false)
+		serviceLogger(fmt.Sprintf("无法传输到后端(HTTPS), %v", err), 31, false)
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())

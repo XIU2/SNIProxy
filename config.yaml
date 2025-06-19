@@ -7,6 +7,9 @@ listen_addr: ":443"
 #enable_socks5: true
 # 可选：配置 Socks5 代理地址
 #socks_addr: 127.0.0.1:40000
+# 可选：配置 Socks5 代理的账号和密码（如果有的话）
+#socks_username: admin
+#socks_password: abc123
 
 # 二选一：允许所有域名（开启后会忽略下面的 rules 列表，二选一）
 #allow_all_hosts: true
