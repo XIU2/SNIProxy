@@ -325,6 +325,12 @@ func getSNIServerName(buf []byte) string {
 // forward 函数接收一个 net.Conn 类型的连接对象 conn、一个 []byte 类型的数据 data、一个目标地址 dst 和一个来源地址 raddr
 // 该函数使用 GetDialer 函数创建一个与目标地址 dst 的后端连接 backend，将 data 写入 backend，然后使用 ioReflector 函数将 backend 和 conn 连接起来，以便将数据从一个连接转发到另一个连接
 func forward(conn net.Conn, data []byte, dst string, raddr string) {
+	// 建立后端连接前先做安全检查，避免把流量再次传回本机导致死循环
+	if blocked, reason := shouldBlockForwardTarget(dst, raddr); blocked {
+		serviceLogger(fmt.Sprintf("拒绝转发(HTTPS): \"%s\", 目标: [%s], 来源: [%s]", reason, dst, raddr), 31, false)
+		return
+	}
+
 	backend, err := GetDialer(cfg.EnableSocks).Dial("tcp", dst)
 	if err != nil {
 		serviceLogger(fmt.Sprintf("无法连接到后端(HTTPS), %v", err), 31, false)
@@ -346,6 +352,117 @@ func forward(conn net.Conn, data []byte, dst string, raddr string) {
 	<-conChk
 	// 取消上下文，通知另一个 ioReflector 退出
 	cancel()
+}
+
+// shouldBlockForwardTarget 在建立后端连接前判断目标地址是否有问题
+func shouldBlockForwardTarget(dst string, raddr string) (bool, string) {
+	// 从 host:port 中提取 host，后续用于 DNS 解析与 IP 比较
+	host, _, err := net.SplitHostPort(dst)
+	if err != nil {
+		return true, fmt.Sprintf("目标地址格式错误: %v", err)
+	}
+
+	// 将来源地址转换为 IP，便于判断“目标 IP 和来源 IP 相同”的场景
+	srcIP := extractIPFromAddr(raddr)
+
+	// 解析目标 host，拿到所有候选 IP（支持直接 IP 或域名）
+	targetIPs, err := resolveHostIPs(host)
+	if err != nil {
+		return true, fmt.Sprintf("解析目标地址失败: %v", err)
+	}
+
+	// 获取本机所有网卡 IP（含回环），用于识别“目标是否本机”
+	localIPs, err := collectLocalIPs()
+	if err != nil {
+		return true, fmt.Sprintf("获取本机地址失败: %v", err)
+	}
+
+	for _, targetIP := range targetIPs {
+		// 命中回环/未指定地址（0.0.0.0、::）也视为会导致回流，直接拒绝
+		if targetIP.IsLoopback() || targetIP.IsUnspecified() {
+			return true, fmt.Sprintf("目标IP是本地保留地址: [%s]", targetIP.String())
+		}
+
+		// 如果目标IP属于本机任一网卡地址，说明会转发到自己，直接拒绝
+		if isIPInList(targetIP, localIPs) {
+			return true, fmt.Sprintf("目标IP是本机地址: [%s]", targetIP.String())
+		}
+
+		// 如果目标IP和来源IP相同，说明请求很可能会回流到发起端路径，直接拒绝
+		if srcIP != nil && targetIP.Equal(srcIP) {
+			return true, fmt.Sprintf("目标IP与来源IP相同: [%s]", targetIP.String())
+		}
+	}
+
+	// 未命中风险规则时允许继续建立连接
+	return false, ""
+}
+
+// resolveHostIPs 将 host 解析为 IP 列表；若 host 本身是 IP 则直接返回
+func resolveHostIPs(host string) ([]net.IP, error) {
+	// 目标是字面量 IP 时无需 DNS 查询
+	if ip := net.ParseIP(host); ip != nil {
+		return []net.IP{ip}, nil
+	}
+
+	// 目标是域名时查询 A/AAAA 记录
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return nil, err
+	}
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("未解析到任何IP")
+	}
+	return ips, nil
+}
+
+// collectLocalIPs 收集本机网卡地址，供“目标是否本机IP”判断使用
+func collectLocalIPs() ([]net.IP, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+
+	// 使用 map 去重，避免同一 IP 在不同表示下重复比较
+	ipSet := make(map[string]net.IP)
+	for _, addr := range addrs {
+		switch v := addr.(type) {
+		case *net.IPNet:
+			if v.IP != nil {
+				ipSet[v.IP.String()] = v.IP
+			}
+		case *net.IPAddr:
+			if v.IP != nil {
+				ipSet[v.IP.String()] = v.IP
+			}
+		}
+	}
+
+	localIPs := make([]net.IP, 0, len(ipSet))
+	for _, ip := range ipSet {
+		localIPs = append(localIPs, ip)
+	}
+	//serviceLogger(fmt.Sprintf("本机网卡IP列表: %v", localIPs), 36, true)
+	return localIPs, nil
+}
+
+// extractIPFromAddr 从 host:port 中提取 IP；无法解析时返回 nil
+func extractIPFromAddr(addr string) net.IP {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil
+	}
+	return net.ParseIP(host)
+}
+
+// isIPInList 判断目标 IP 是否出现在给定 IP 列表中
+func isIPInList(target net.IP, list []net.IP) bool {
+	for _, ip := range list {
+		if target.Equal(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 // ioReflector 函数接收一个 io.WriteCloser 类型的写入对象 dst、一个 io.Reader 类型的读取对象 src、一个 bool 类型的 isToClient、一个 chan struct{} 类型的 conChk，以及两个字符串类型的 raddr 和 dsts
