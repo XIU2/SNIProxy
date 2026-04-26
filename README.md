@@ -86,14 +86,14 @@ mkdir sniproxy
 # 进入文件夹（后续更新，只需要从这里重复下面的下载、解压命令即可）
 cd sniproxy
 
-# 下载 sniproxy 压缩包（自行根据需求替换 URL 中 [版本号] 和 [文件名]）
-wget -N https://github.com/XIU2/SNIProxy/releases/download/v1.0.7/sniproxy_linux_amd64.tar.gz
+# 下载 sniproxy 压缩包（这个地址是始终指向最新版本，可自行根据需求替换 URL 末尾的 [文件名]）
+wget -N https://github.com/XIU2/SNIProxy/releases/latest/download/sniproxy_linux_amd64.tar.gz
 # 如果你是在国内服务器上下载，那么请使用下面这几个镜像加速：
-# wget -N https://wget.la/https://github.com/XIU2/SNIProxy/releases/download/v1.0.7/sniproxy_linux_amd64.tar.gz
-# wget -N https://ghfast.top/https://github.com/XIU2/SNIProxy/releases/download/v1.0.7/sniproxy_linux_amd64.tar.gz
-# wget -N https://ghproxy.it/https://github.com/XIU2/SNIProxy/releases/download/v1.0.7/sniproxy_linux_amd64.tar.gz
-# wget -N https://gh-proxy.org/https://github.com/XIU2/SNIProxy/releases/download/v1.0.7/sniproxy_linux_amd64.tar.gz
-# wget -N https://cdn.gh-proxy.org/https://github.com/XIU2/SNIProxy/releases/download/v1.0.7/sniproxy_linux_amd64.tar.gz
+# wget -N https://wget.la/https://github.com/XIU2/SNIProxy/releases/latest/download/sniproxy_linux_amd64.tar.gz
+# wget -N https://ghfast.top/https://github.com/XIU2/SNIProxy/releases/latest/download/sniproxy_linux_amd64.tar.gz
+# wget -N https://ghproxy.it/https://github.com/XIU2/SNIProxy/releases/latest/download/sniproxy_linux_amd64.tar.gz
+# wget -N https://gh-proxy.org/https://github.com/XIU2/SNIProxy/releases/latest/download/sniproxy_linux_amd64.tar.gz
+# wget -N https://cdn.gh-proxy.org/https://github.com/XIU2/SNIProxy/releases/latest/download/sniproxy_linux_amd64.tar.gz
 # 如果下载失败的话，尝试删除 -N 参数（如果是为了更新，则记得提前删除旧压缩包 rm sniproxy_linux_amd64.tar.gz ）
 
 # 解压（不需要删除旧文件，会直接覆盖，自行根据需求替换 文件名）
